@@ -43,8 +43,11 @@ export async function GET() {
       },
       {
         headers: {
-          // Cache no CDN por 15s, serve stale enquanto revalida em background
-          'Cache-Control': 'public, s-maxage=15, stale-while-revalidate=30',
+          // Dashboard precisa refletir mudanças em tempo real (realtime/polling).
+          // Cache em CDN faz os indicadores parecerem “travados” até um hard refresh.
+          'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+          'Pragma': 'no-cache',
+          'Expires': '0',
         },
       }
     )

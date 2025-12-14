@@ -28,13 +28,23 @@ export const dashboardService = {
   /**
    * Buscar stats do dashboard direto da API otimizada.
    * A API faz uma única query SQL agregada no servidor.
-   * Cache: 15s no edge, stale-while-revalidate: 30s
+   * Observação: sem cache para manter o dashboard “ao vivo”.
    */
   getStats: async (): Promise<DashboardStats> => {
     // Fazer ambas chamadas em PARALELO
     const [statsResponse, campaignsResponse] = await Promise.all([
-      fetch('/api/dashboard/stats'),
-      fetch('/api/campaigns')
+      fetch('/api/dashboard/stats', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      }),
+      fetch('/api/campaigns', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      })
     ]);
     
     // Parse das respostas
@@ -64,11 +74,16 @@ export const dashboardService = {
 
   /**
    * Buscar campanhas recentes (top 5).
-   * Usa o cache do /api/campaigns (10s edge cache)
+   * Sem cache para manter o dashboard “ao vivo”.
    */
   getRecentCampaigns: async (): Promise<Campaign[]> => {
     try {
-      const response = await fetch('/api/campaigns');
+      const response = await fetch('/api/campaigns', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      });
       if (!response.ok) return [];
       const campaigns: Campaign[] = await response.json();
       return campaigns.slice(0, 5);
