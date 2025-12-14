@@ -7,6 +7,13 @@ import { buildMetaTemplatePayload, precheckContactForTemplate } from '@/lib/what
 import { emitWorkflowTrace, maskPhone, timePhase } from '@/lib/workflow-trace'
 import { createRateLimiter } from '@/lib/rate-limiter'
 import { recordStableBatch, recordThroughputExceeded, getAdaptiveThrottleConfig, getAdaptiveThrottleState } from '@/lib/whatsapp-adaptive-throttle'
+import { createHash } from 'crypto'
+
+function hashConfig(input: unknown): string {
+  // Observação: o objetivo é agrupar configs; não precisamos de criptografia forte aqui.
+  // JSON.stringify é estável o suficiente porque este objeto tem chaves fixas.
+  return createHash('sha256').update(JSON.stringify(input)).digest('hex').slice(0, 16)
+}
 
 interface Contact {
   contactId: string
@@ -230,6 +237,9 @@ export const { POST } = serve<CampaignWorkflowInput>(
         let sawThroughput429 = false
         let limiter: ReturnType<typeof createRateLimiter> | null = null
 
+        let targetMpsForBatch: number | null = null
+        const floorDelayMs = Number(adaptiveConfig?.sendFloorDelayMs ?? process.env.WHATSAPP_SEND_FLOOR_DELAY_MS ?? '0')
+
         const rawConcurrency = Number(adaptiveConfig?.sendConcurrency ?? process.env.WHATSAPP_SEND_CONCURRENCY ?? '1')
         const concurrency = Number.isFinite(rawConcurrency)
           ? Math.max(1, Math.min(50, Math.floor(rawConcurrency)))
@@ -254,6 +264,7 @@ export const { POST } = serve<CampaignWorkflowInput>(
           if (adaptiveEnabled) {
             const state = await getAdaptiveThrottleState(phoneNumberId)
             limiter = createRateLimiter(state.targetMps)
+            targetMpsForBatch = state.targetMps
 
             await emitWorkflowTrace({
               traceId,
@@ -281,7 +292,7 @@ export const { POST } = serve<CampaignWorkflowInput>(
               concurrency,
               batchSize: BATCH_SIZE,
               adaptiveEnabled,
-              floorDelayMs: Number(adaptiveConfig?.sendFloorDelayMs ?? process.env.WHATSAPP_SEND_FLOOR_DELAY_MS ?? '0'),
+              floorDelayMs,
             },
           })
 
@@ -533,7 +544,6 @@ export const { POST } = serve<CampaignWorkflowInput>(
             // Delay mínimo opcional (deixa desligado por padrão).
             // Observação: com limiter ativo, esse delay não é necessário para throughput,
             // mas pode ser útil para aliviar CPU/logs em bursts.
-            const floorDelayMs = Number(adaptiveConfig?.sendFloorDelayMs ?? process.env.WHATSAPP_SEND_FLOOR_DELAY_MS ?? '0')
             if (floorDelayMs > 0) {
               await new Promise(resolve => setTimeout(resolve, floorDelayMs))
             }
@@ -649,6 +659,42 @@ export const { POST } = serve<CampaignWorkflowInput>(
               sawThroughput429,
             },
           })
+
+          // Persistência best-effort para baselines (não pode quebrar o envio).
+          try {
+            await supabase
+              .from('campaign_batch_metrics')
+              .insert({
+                campaign_id: campaignId,
+                trace_id: traceId,
+                batch_index: batchIndex,
+                configured_batch_size: BATCH_SIZE,
+                batch_size: batch.length,
+                concurrency,
+                adaptive_enabled: adaptiveEnabled,
+                target_mps: targetMpsForBatch,
+                floor_delay_ms: Number.isFinite(floorDelayMs) ? floorDelayMs : null,
+                sent_count: sentCount,
+                failed_count: failedCount,
+                skipped_count: skippedCount,
+                meta_requests: sentCount + failedCount,
+                meta_time_ms: metaTimeMs,
+                db_time_ms: dbTimeMs,
+                saw_throughput_429: sawThroughput429,
+                batch_ok: batchOk,
+                error: batchError,
+              })
+          } catch (e) {
+            console.warn(
+              '[metrics] failed to insert campaign_batch_metrics',
+              JSON.stringify({
+                campaignId,
+                traceId,
+                batchIndex,
+                error: e instanceof Error ? e.message : String(e),
+              })
+            )
+          }
         }
 
         // Update stats in Supabase (source of truth)
@@ -704,6 +750,118 @@ export const { POST } = serve<CampaignWorkflowInput>(
         ok: true,
         extra: { finalStatus },
       })
+
+      // Persistência best-effort do "run" (baseline / evolução).
+      try {
+        const adaptiveConfig = await getAdaptiveThrottleConfig().catch(() => null)
+        const rawConcurrency = Number(adaptiveConfig?.sendConcurrency ?? process.env.WHATSAPP_SEND_CONCURRENCY ?? '1')
+        const concurrency = Number.isFinite(rawConcurrency)
+          ? Math.max(1, Math.min(50, Math.floor(rawConcurrency)))
+          : 1
+        const rawBatchSize = Number(adaptiveConfig?.batchSize ?? process.env.WHATSAPP_WORKFLOW_BATCH_SIZE ?? '10')
+        const configuredBatchSize = Number.isFinite(rawBatchSize)
+          ? Math.max(1, Math.min(200, Math.floor(rawBatchSize)))
+          : 10
+
+        // Agrega batches (se a tabela existir)
+        let sumMetaTimeMs = 0
+        let sumDbTimeMs = 0
+        let sumMetaRequests = 0
+        let sumProcessed = 0
+        let any429 = false
+
+        try {
+          const { data: rows } = await supabase
+            .from('campaign_batch_metrics')
+            .select('meta_time_ms,db_time_ms,meta_requests,sent_count,failed_count,skipped_count,saw_throughput_429')
+            .eq('campaign_id', campaignId)
+            .eq('trace_id', traceId)
+
+          for (const r of rows || []) {
+            sumMetaTimeMs += Number(r.meta_time_ms || 0)
+            sumDbTimeMs += Number(r.db_time_ms || 0)
+            sumMetaRequests += Number(r.meta_requests || 0)
+            const processed = Number(r.sent_count || 0) + Number(r.failed_count || 0) + Number(r.skipped_count || 0)
+            sumProcessed += processed
+            if (r.saw_throughput_429) any429 = true
+          }
+        } catch {
+          // best-effort
+        }
+
+        const firstDispatchAt = (campaign as any)?.firstDispatchAt
+        const lastSentAt = (campaign as any)?.lastSentAt
+
+        const dispatchDurationMs = (firstDispatchAt && lastSentAt)
+          ? Math.max(0, Date.parse(lastSentAt) - Date.parse(firstDispatchAt))
+          : null
+
+        const sentTotal = (campaign as any)?.sent ?? null
+        const failedTotal = (campaign as any)?.failed ?? null
+        const skippedTotal = (campaign as any)?.skipped ?? null
+
+        const throughputMps = (dispatchDurationMs && dispatchDurationMs > 0 && typeof sentTotal === 'number')
+          ? (sentTotal / (dispatchDurationMs / 1000))
+          : null
+
+        const metaAvgMs = sumMetaRequests > 0 ? (sumMetaTimeMs / sumMetaRequests) : null
+        const dbAvgMs = sumProcessed > 0 ? (sumDbTimeMs / sumProcessed) : null
+
+        const configSnapshot = {
+          adaptive: adaptiveConfig
+            ? {
+              enabled: Boolean((adaptiveConfig as any).enabled),
+              sendConcurrency: Number((adaptiveConfig as any).sendConcurrency),
+              batchSize: Number((adaptiveConfig as any).batchSize),
+              startMps: Number((adaptiveConfig as any).startMps),
+              maxMps: Number((adaptiveConfig as any).maxMps),
+              minMps: Number((adaptiveConfig as any).minMps),
+              cooldownSec: Number((adaptiveConfig as any).cooldownSec),
+              minIncreaseGapSec: Number((adaptiveConfig as any).minIncreaseGapSec),
+              sendFloorDelayMs: Number((adaptiveConfig as any).sendFloorDelayMs),
+            }
+            : null,
+          effective: {
+            configuredBatchSize,
+            concurrency,
+          },
+        }
+
+        const configHash = hashConfig(configSnapshot)
+
+        await supabase
+          .from('campaign_run_metrics')
+          .upsert(
+            {
+              campaign_id: campaignId,
+              trace_id: traceId,
+              template_name: templateName,
+              recipients: contacts?.length || null,
+              sent_total: sentTotal,
+              failed_total: failedTotal,
+              skipped_total: skippedTotal,
+              first_dispatch_at: firstDispatchAt || null,
+              last_sent_at: lastSentAt || null,
+              dispatch_duration_ms: dispatchDurationMs,
+              throughput_mps: throughputMps,
+              meta_avg_ms: metaAvgMs,
+              db_avg_ms: dbAvgMs,
+              saw_throughput_429: any429,
+              config: configSnapshot,
+              config_hash: configHash,
+            },
+            { onConflict: 'campaign_id,trace_id' }
+          )
+      } catch (e) {
+        console.warn(
+          '[metrics] failed to upsert campaign_run_metrics',
+          JSON.stringify({
+            campaignId,
+            traceId,
+            error: e instanceof Error ? e.message : String(e),
+          })
+        )
+      }
     })
   },
   {

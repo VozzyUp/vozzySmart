@@ -58,6 +58,14 @@ export const useCampaignDetailsController = () => {
     return isRealtimeConnected ? BACKUP_POLLING_INTERVAL : DISCONNECTED_POLLING_INTERVAL;
   }, [shouldPoll, isLargeCampaign, isRealtimeConnected]);
 
+  const metricsQuery = useQuery({
+    queryKey: ['campaignMetrics', id],
+    queryFn: () => campaignService.getMetrics(id!),
+    enabled: !!id,
+    staleTime: 5000,
+    refetchInterval: pollingInterval,
+  })
+
   // Fetch messages with optional polling
   const messagesQuery = useQuery({
     queryKey: ['campaignMessages', id, filterStatus],
@@ -246,6 +254,7 @@ export const useCampaignDetailsController = () => {
     campaign: activeCampaign,
     messages: filteredMessages,
     isLoading: campaignQuery.isLoading || messagesQuery.isLoading,
+    metrics: metricsQuery.data,
     searchTerm,
     setSearchTerm,
     navigate,

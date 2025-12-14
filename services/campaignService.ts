@@ -127,6 +127,19 @@ export const campaignService = {
     return campaign;
   },
 
+  getMetrics: async (id: string): Promise<any | null> => {
+    try {
+      const response = await fetch(`/api/campaigns/${id}/metrics`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
+      })
+      if (!response.ok) return null
+      return response.json()
+    } catch {
+      return null
+    }
+  },
+
   // INSTANT: Get pending messages - returns empty array (real data comes from getMessages)
   getPendingMessages: (_id: string): Message[] => {
     // During creation, messages are pending. After dispatch, use getMessages() for real status.

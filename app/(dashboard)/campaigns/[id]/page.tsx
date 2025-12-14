@@ -12,6 +12,7 @@ export default function CampaignDetailsPage() {
       messages={controller.messages}
       messageStats={controller.messageStats}
       realStats={controller.realStats}
+      metrics={controller.metrics}
       isLoading={controller.isLoading}
       searchTerm={controller.searchTerm}
       setSearchTerm={controller.setSearchTerm}

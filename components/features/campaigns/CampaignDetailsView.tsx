@@ -175,6 +175,7 @@ interface CampaignDetailsViewProps {
     read: number;
     total: number;
   } | null;
+  metrics?: any | null;
   isLoading: boolean;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
@@ -208,6 +209,7 @@ export const CampaignDetailsView: React.FC<CampaignDetailsViewProps> = ({
   messages,
   messageStats,
   realStats,
+  metrics,
   isLoading,
   searchTerm,
   setSearchTerm,
@@ -236,6 +238,41 @@ export const CampaignDetailsView: React.FC<CampaignDetailsViewProps> = ({
   const [showTemplatePreview, setShowTemplatePreview] = useState(false);
   const [quickEditContactId, setQuickEditContactId] = useState<string | null>(null);
   const [quickEditFocus, setQuickEditFocus] = useState<any>(null);
+
+  const perf = metrics?.current || null;
+  const baseline = Array.isArray(metrics?.baseline) ? metrics.baseline : [];
+
+  const formatDurationMs = (ms: number | null | undefined) => {
+    if (!ms || ms <= 0) return '—';
+    const totalSec = Math.round(ms / 1000);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return m > 0 ? `${m}m ${String(s).padStart(2, '0')}s` : `${s}s`;
+  };
+
+  const formatThroughput = (mps: number | null | undefined) => {
+    if (!Number.isFinite(mps as number) || (mps as number) <= 0) return '—';
+    const v = mps as number;
+    const perMin = v * 60;
+    return `${v.toFixed(2)} msg/s (${perMin.toFixed(1)} msg/min)`;
+  };
+
+  const formatMs = (ms: number | null | undefined) => {
+    if (!Number.isFinite(ms as number) || (ms as number) <= 0) return '—';
+    const v = ms as number;
+    return v >= 1000 ? `${(v / 1000).toFixed(2)}s` : `${Math.round(v)}ms`;
+  };
+
+  const baselineThroughputMedian = useMemo(() => {
+    const vals = baseline
+      .map((r: any) => Number(r?.throughput_mps))
+      .filter((n: number) => Number.isFinite(n) && n > 0)
+      .sort((a: number, b: number) => a - b);
+
+    if (!vals.length) return null;
+    const mid = Math.floor(vals.length / 2);
+    return vals.length % 2 === 1 ? vals[mid] : (vals[mid - 1] + vals[mid]) / 2;
+  }, [baseline]);
 
   if (isLoading || !campaign) return <div className="p-10 text-center text-gray-500">Carregando...</div>;
 
@@ -440,6 +477,68 @@ export const CampaignDetailsView: React.FC<CampaignDetailsViewProps> = ({
           isActive={filterStatus === MessageStatus.FAILED}
           onClick={() => setFilterStatus?.(filterStatus === MessageStatus.FAILED ? null : MessageStatus.FAILED)}
         />
+      </div>
+
+      {/* Performance / Baseline (sent-only) */}
+      <div className="mt-4 glass-panel rounded-2xl p-5 border border-white/5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-white font-bold">Performance do disparo (sent-only)</h3>
+            <p className="text-xs text-gray-500">
+              Baseline para comparar configurações do modo Turbo e medir evolução.
+            </p>
+          </div>
+          <span className="text-[10px] uppercase tracking-wider text-gray-500 bg-zinc-900/60 border border-white/10 rounded-full px-2 py-1">
+            fonte: {metrics?.source || '—'}
+          </span>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <DetailCard
+            title="Throughput"
+            value={formatThroughput(Number(perf?.throughput_mps))}
+            subvalue={baselineThroughputMedian
+              ? `Mediana recente: ${baselineThroughputMedian.toFixed(2)} msg/s`
+              : 'Ainda sem baseline suficiente'}
+            icon={CheckCircle2}
+            color="#10b981"
+          />
+          <DetailCard
+            title="Duração do disparo"
+            value={formatDurationMs(Number(perf?.dispatch_duration_ms))}
+            subvalue="Janela entre first_dispatch_at e last_sent_at"
+            icon={Clock}
+            color="#a1a1aa"
+          />
+          <DetailCard
+            title="Meta (média)"
+            value={formatMs(Number(perf?.meta_avg_ms))}
+            subvalue={perf?.saw_throughput_429 ? '⚠️ Viu 130429 (throughput)' : 'Sem sinal de 130429'}
+            icon={Eye}
+            color="#3b82f6"
+          />
+        </div>
+
+        <div className="mt-4 text-xs text-gray-400 grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div className="bg-zinc-900/50 border border-white/10 rounded-lg p-3">
+            <div className="text-gray-500">Config efetiva</div>
+            <div className="mt-1 font-mono">
+              conc={perf?.config?.effective?.concurrency ?? '—'} | batch={perf?.config?.effective?.configuredBatchSize ?? '—'}
+            </div>
+          </div>
+          <div className="bg-zinc-900/50 border border-white/10 rounded-lg p-3">
+            <div className="text-gray-500">Turbo (adaptive)</div>
+            <div className="mt-1 font-mono">
+              {perf?.config?.adaptive
+                ? `enabled=${String(perf.config.adaptive.enabled)} maxMps=${perf.config.adaptive.maxMps}`
+                : '—'}
+            </div>
+          </div>
+          <div className="bg-zinc-900/50 border border-white/10 rounded-lg p-3">
+            <div className="text-gray-500">Hash de config</div>
+            <div className="mt-1 font-mono">{perf?.config_hash ?? '—'}</div>
+          </div>
+        </div>
       </div>
 
       {/* Message Log */}
