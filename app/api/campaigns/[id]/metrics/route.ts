@@ -33,6 +33,12 @@ function computeDispatchMetrics(firstDispatchAt?: string | null, lastSentAt?: st
   return { dispatchDurationMs, throughputMps }
 }
 
+function isMissingTableError(err: any): boolean {
+  const msg = String(err?.message || '').toLowerCase()
+  // Supabase/Postgres costuma retornar "does not exist" quando a relation/tabela não existe.
+  return msg.includes('does not exist') || msg.includes('relation') && msg.includes('does not exist')
+}
+
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params
   if (!id) return noStoreJson({ error: 'Missing campaign id' }, { status: 400 })
@@ -47,7 +53,10 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
       .limit(1)
       .maybeSingle()
 
-    if (runErr && !String(runErr.message || '').toLowerCase().includes('does not exist')) {
+    const runTableMissing = !!runErr && isMissingTableError(runErr)
+    const runHadError = !!runErr && !runTableMissing
+
+    if (runHadError) {
       // Erros não-esperados
       console.warn('[metrics] run query error', runErr)
     }
@@ -58,15 +67,61 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
       .order('created_at', { ascending: false })
       .limit(30)
 
-    if (baselineErr && !String(baselineErr.message || '').toLowerCase().includes('does not exist')) {
+    const baselineTableMissing = !!baselineErr && isMissingTableError(baselineErr)
+    const baselineHadError = !!baselineErr && !baselineTableMissing
+
+    if (baselineHadError) {
       console.warn('[metrics] baseline query error', baselineErr)
     }
+
+    const tableMissing = runTableMissing || baselineTableMissing
+    const tableExists = !tableMissing
 
     if (run) {
       return noStoreJson({
         current: run,
         baseline: baseline || [],
         source: 'run_metrics',
+      })
+    }
+
+    // Se a tabela existe mas ainda não há run para esta campanha, não faz sentido
+    // dizer para "aplicar a migration". Retornamos a fonte como run_metrics e
+    // usamos o campaigns apenas para preencher o CURRENT de forma sent-only.
+    if (tableExists && !run) {
+      const campaign = await campaignDb.getById(id)
+      if (!campaign) return noStoreJson({ error: 'Campaign not found' }, { status: 404 })
+
+      const firstDispatchAt = (campaign as any).firstDispatchAt ?? null
+      const lastSentAt = (campaign as any).lastSentAt ?? null
+      const sentTotal = safeNumber((campaign as any).sent)
+      const { dispatchDurationMs, throughputMps } = computeDispatchMetrics(firstDispatchAt, lastSentAt, sentTotal)
+
+      const hint = (runHadError || baselineHadError)
+        ? 'A tabela de métricas existe, mas houve erro ao consultar run_metrics. Verifique logs do /api/campaign/workflow e permissões/credenciais do Supabase (SUPABASE_SECRET_KEY).'
+        : 'A tabela de métricas existe, mas ainda não há uma execução (run_metrics) registrada para esta campanha. Rode uma nova campanha (após o deploy dessas mudanças) para gerar trace_id + métricas por execução.'
+
+      return noStoreJson({
+        current: {
+          campaign_id: (campaign as any).id,
+          template_name: (campaign as any).templateName ?? null,
+          recipients: (campaign as any).recipients ?? null,
+          sent_total: (campaign as any).sent ?? null,
+          failed_total: (campaign as any).failed ?? null,
+          skipped_total: (campaign as any).skipped ?? null,
+          first_dispatch_at: firstDispatchAt,
+          last_sent_at: lastSentAt,
+          dispatch_duration_ms: dispatchDurationMs,
+          throughput_mps: throughputMps,
+          meta_avg_ms: null,
+          db_avg_ms: null,
+          saw_throughput_429: null,
+          config: null,
+          config_hash: null,
+        },
+        baseline: baseline || [],
+        source: 'run_metrics',
+        hint,
       })
     }
 
