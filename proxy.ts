@@ -26,9 +26,24 @@ export async function proxy(request: NextRequest) {
     // If the user has a valid session, we should not force them back into the setup wizard.
     const sessionCookie = request.cookies.get('smartzap_session')
 
-    // Allow OPTIONS requests for CORS preflight
+    // Handle OPTIONS requests for CORS preflight.
+    // Alguns scripts (ex.: Vercel feedback/toolbar) disparam OPTIONS/HEAD mesmo em páginas.
+    // Deixar isso cair no roteamento padrão pode virar 400 e poluir o console.
     if (request.method === 'OPTIONS') {
-        return NextResponse.next()
+        const origin = request.headers.get('origin')
+        const reqHeaders = request.headers.get('access-control-request-headers')
+
+        return new NextResponse(null, {
+            status: 204,
+            headers: {
+                ...(origin ? { 'Access-Control-Allow-Origin': origin } : {}),
+                'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD',
+                'Access-Control-Allow-Headers': reqHeaders || 'Content-Type, Authorization',
+                ...(origin ? { 'Access-Control-Allow-Credentials': 'true' } : {}),
+                'Access-Control-Max-Age': '86400',
+                'Vary': 'Origin, Access-Control-Request-Headers',
+            },
+        })
     }
 
     // ==========================================================================

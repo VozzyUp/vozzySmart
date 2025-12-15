@@ -1,4 +1,7 @@
 @import "tailwindcss";
+
+/* ReactFlow / XYFlow (necessário para renderização correta do canvas) */
+@import "@xyflow/react/dist/style.css";
 @import "tw-animate-css";
 @import "react-international-phone/style.css";
 

@@ -42,3 +42,7 @@ CREATE INDEX IF NOT EXISTS idx_flow_submissions_from_phone ON flow_submissions(f
 CREATE INDEX IF NOT EXISTS idx_flow_submissions_contact_id ON flow_submissions(contact_id);
 CREATE INDEX IF NOT EXISTS idx_flow_submissions_flow_id ON flow_submissions(flow_id);
 CREATE INDEX IF NOT EXISTS idx_flow_submissions_created_at ON flow_submissions(created_at DESC);
+
+-- Força o PostgREST (Supabase API) a recarregar o schema.
+-- Útil quando a API ainda não "enxerga" tabelas recém-criadas (schema cache).
+NOTIFY pgrst, 'reload schema';

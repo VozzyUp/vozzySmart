@@ -36,8 +36,10 @@ export const flowSubmissionsService = {
     })
 
     if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      throw new Error(text || 'Falha ao buscar submissions de Flow')
+      const data = await res.json().catch(() => null)
+      const base = (data?.error && String(data.error)) || 'Falha ao buscar submissions de Flow'
+      const details = data?.details ? String(data.details) : ''
+      throw new Error(details ? `${base}: ${details}` : base)
     }
 
     return res.json()

@@ -3,6 +3,27 @@ import { Client } from 'pg'
 import { promises as fs } from 'fs'
 import path from 'path'
 
+async function resolveMigrationsDir(): Promise<{ dir: string; files: string[] }> {
+    // Fonte única de verdade: supabase/migrations
+    // Mantemos fallback para lib/migrations por compatibilidade com setups antigos.
+    const supabaseDir = path.join(process.cwd(), 'supabase/migrations')
+    const legacyDir = path.join(process.cwd(), 'lib/migrations')
+
+    const tryRead = async (dir: string) => {
+        const entries = await fs.readdir(dir)
+        const files = entries
+            .filter((f) => f.toLowerCase().endsWith('.sql'))
+            .sort((a, b) => a.localeCompare(b))
+        return { dir, files }
+    }
+
+    try {
+        return await tryRead(supabaseDir)
+    } catch {
+        return await tryRead(legacyDir)
+    }
+}
+
 export async function POST(request: NextRequest) {
     let client: Client | null = null
     let fullSql = ''
@@ -52,15 +73,18 @@ export async function POST(request: NextRequest) {
         }
 
         // Read SQL files (default 'migrate' action)
-        const migrationsDir = path.join(process.cwd(), 'lib/migrations')
-        const files = [
-            '0001_initial_schema.sql'
-        ]
+        const resolved = await resolveMigrationsDir()
+        if (!resolved.files.length) {
+            return NextResponse.json(
+                { error: `Nenhuma migration .sql encontrada em ${resolved.dir}` },
+                { status: 500 }
+            )
+        }
 
-        for (const file of files) {
-            const filePath = path.join(migrationsDir, file)
+        for (const file of resolved.files) {
+            const filePath = path.join(resolved.dir, file)
             const content = await fs.readFile(filePath, 'utf-8')
-            fullSql += content + '\n\n'
+            fullSql += `\n\n-- === MIGRATION: ${file} ===\n\n` + content + '\n'
         }
 
         // Split statements simply by semicolon to execute individually or as big block?

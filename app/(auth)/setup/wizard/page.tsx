@@ -845,6 +845,8 @@ function WizardContent() {
                     value={data.password}
                     onChange={(e) => updateField('password', e.target.value)}
                     placeholder="Senha"
+                    name="new-password"
+                    autoComplete="new-password"
                     className="w-full bg-zinc-800 border border-zinc-700 rounded-xl pl-11 pr-11 py-3 text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     autoFocus
                   />
@@ -864,6 +866,8 @@ function WizardContent() {
                     value={data.confirmPassword}
                     onChange={(e) => updateField('confirmPassword', e.target.value)}
                     placeholder="Confirmar senha"
+                    name="confirm-new-password"
+                    autoComplete="new-password"
                     className="w-full bg-zinc-800 border border-zinc-700 rounded-xl pl-11 pr-4 py-3 text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   />
                   {data.confirmPassword && data.password === data.confirmPassword && (

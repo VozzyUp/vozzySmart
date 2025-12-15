@@ -531,6 +531,8 @@ export function DashboardShell({
         if (path === '/conversations') return 'Conversas'
         if (path.startsWith('/conversations/')) return 'Conversa'
         if (path === '/flows') return 'Flows'
+        if (path === '/flows/builder') return 'Flow Builder'
+        if (path.startsWith('/flows/builder/')) return 'Editor de Flow'
         if (path === '/templates') return 'Templates'
         if (path.startsWith('/contacts')) return 'Contatos'
         if (path.startsWith('/settings')) return 'Configurações'

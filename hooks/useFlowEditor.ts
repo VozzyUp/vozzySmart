@@ -1,0 +1,47 @@
+import { useEffect, useMemo, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { flowsService } from '@/services/flowsService'
+
+export function useFlowEditorController(flowId: string) {
+  const qc = useQueryClient()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => setMounted(true), [])
+
+  const flowQuery = useQuery({
+    queryKey: ['flows', flowId],
+    queryFn: () => flowsService.get(flowId),
+    enabled: mounted && !!flowId,
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: (patch: { name?: string; metaFlowId?: string; spec?: unknown }) => flowsService.update(flowId, patch),
+    onSuccess: (row) => {
+      qc.setQueryData(['flows', flowId], row)
+      qc.invalidateQueries({ queryKey: ['flows'] })
+      toast.success('Flow salvo')
+    },
+    onError: (e: Error) => toast.error(e.message || 'Erro ao salvar'),
+  })
+
+  const flow = flowQuery.data
+
+  const spec = useMemo(() => {
+    const s = (flow as any)?.spec
+    if (s && typeof s === 'object') return s
+    return { version: 1, viewport: { x: 0, y: 0, zoom: 1 }, nodes: [], edges: [] }
+  }, [flow])
+
+  return {
+    flow,
+    spec,
+    isLoading: !mounted || flowQuery.isLoading,
+    isError: flowQuery.isError,
+    error: flowQuery.error as Error | null,
+
+    save: (patch: { name?: string; metaFlowId?: string; spec?: unknown }) => updateMutation.mutate(patch),
+    saveAsync: (patch: { name?: string; metaFlowId?: string; spec?: unknown }) => updateMutation.mutateAsync(patch),
+    isSaving: updateMutation.isPending,
+  }
+}

@@ -1,10 +1,14 @@
 'use client'
 
+import Link from 'next/link'
 import { Fragment, useMemo, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
 import { RefreshCw, Search, ChevronDown, ChevronUp } from 'lucide-react'
 import type { FlowSubmissionRow } from '@/services/flowSubmissionsService'
+import type { FlowRow } from '@/services/flowsService'
 
 function formatDateTime(value: string | null | undefined): string {
   if (!value) return '—'
@@ -34,16 +38,31 @@ export function FlowSubmissionsView(props: {
   flowIdFilter: string
   onFlowIdFilterChange: (v: string) => void
   onRefresh: () => void
+  builderFlows?: FlowRow[]
 }) {
   const [openId, setOpenId] = useState<string | null>(null)
 
   const rows = useMemo(() => props.submissions || [], [props.submissions])
 
+  const builderByMetaFlowId = useMemo(() => {
+    const out = new Map<string, FlowRow>()
+    for (const f of props.builderFlows || []) {
+      if (f.meta_flow_id) out.set(String(f.meta_flow_id), f)
+    }
+    return out
+  }, [props.builderFlows])
+
+  const builderFlowOptions = useMemo(() => {
+    const rows = (props.builderFlows || []).filter((f) => !!f.meta_flow_id)
+    rows.sort((a, b) => a.name.localeCompare(b.name))
+    return rows
+  }, [props.builderFlows])
+
   return (
     <div className="space-y-4">
       <div className="glass-panel p-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
               <label className="block text-xs text-gray-400 mb-1">Filtrar por telefone (from_phone)</label>
               <div className="relative">
@@ -56,6 +75,27 @@ export function FlowSubmissionsView(props: {
                 />
               </div>
             </div>
+
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Flow (Builder)</label>
+              <Select
+                value={props.flowIdFilter?.trim() ? props.flowIdFilter : '__all__'}
+                onValueChange={(v) => props.onFlowIdFilterChange(v === '__all__' ? '' : v)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Todos</SelectItem>
+                  {builderFlowOptions.map((f) => (
+                    <SelectItem key={f.id} value={String(f.meta_flow_id)}>
+                      {f.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div>
               <label className="block text-xs text-gray-400 mb-1">Filtrar por Flow ID</label>
               <Input
@@ -106,6 +146,7 @@ export function FlowSubmissionsView(props: {
             ) : (
               rows.map((r) => {
                 const isOpen = openId === r.id
+                const builder = r.flow_id ? builderByMetaFlowId.get(String(r.flow_id)) : undefined
                 return (
                   <Fragment key={r.id}>
                     <tr className="border-t border-white/5 hover:bg-white/5">
@@ -115,6 +156,19 @@ export function FlowSubmissionsView(props: {
                         <div className="text-gray-200 font-medium">{r.flow_name || r.flow_id || '—'}</div>
                         {r.flow_id && r.flow_name && (
                           <div className="text-[11px] text-gray-500 font-mono">{r.flow_id}</div>
+                        )}
+                        {builder && (
+                          <div className="mt-1 flex items-center gap-2">
+                            <Badge variant="secondary" className="bg-white/5 text-gray-200 border-white/10">
+                              Builder
+                            </Badge>
+                            <Link
+                              href={`/flows/builder/${encodeURIComponent(builder.id)}`}
+                              className="text-[11px] text-gray-300 hover:text-white underline underline-offset-2"
+                            >
+                              {builder.name}
+                            </Link>
+                          </div>
                         )}
                       </td>
                       <td className="px-4 py-3 font-mono text-xs text-gray-300">{r.flow_token || '—'}</td>
@@ -184,3 +238,4 @@ export function FlowSubmissionsView(props: {
     </div>
   )
 }
+
