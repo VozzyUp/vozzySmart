@@ -10,6 +10,7 @@ export const revalidate = 0
 
 const META_API_VERSION = 'v24.0'
 const META_API_BASE = `https://graph.facebook.com/${META_API_VERSION}`
+const META_BUSINESS_LOCKED_CODE = 131031
 
 type CheckStatus = 'pass' | 'warn' | 'fail' | 'info'
 
@@ -284,6 +285,28 @@ function buildReportText(
 	checks: DiagnosticCheck[],
 	meta: { vercelEnv: string | null; webhookUrl: string; source: string }
 ) {
+	function hasCodeDeep(value: unknown, code: number): boolean {
+		if (!value) return false
+		if (typeof value === 'number') return value === code
+		if (typeof value === 'string') {
+			return value.includes(String(code)) || value.toLowerCase().includes('business account locked')
+		}
+		if (Array.isArray(value)) return value.some((v) => hasCodeDeep(v, code))
+		if (typeof value === 'object') {
+			const o = value as any
+			if (Number(o?.code) === code) return true
+			if (Number(o?.error_code) === code) return true
+			if (o?.error && hasCodeDeep(o.error, code)) return true
+			// padrão do nosso recentFailures.top[]
+			if (Array.isArray(o?.top) && o.top.some((x: any) => Number(x?.code) === code)) return true
+			for (const k of Object.keys(o)) {
+				if (hasCodeDeep(o[k], code)) return true
+			}
+			return false
+		}
+		return false
+	}
+
 	const statusEmoji = (s: CheckStatus) => {
 		switch (s) {
 			case 'pass':
@@ -301,6 +324,9 @@ function buildReportText(
 	lines.push(`SmartZap · Diagnóstico Meta/WhatsApp · ${new Date().toLocaleString('pt-BR')}`)
 	lines.push(`Ambiente: ${meta.vercelEnv || 'desconhecido'} · Credenciais: ${meta.source}`)
 	lines.push(`Webhook esperado: ${meta.webhookUrl}`)
+	if (checks.some((c) => hasCodeDeep(c.details, META_BUSINESS_LOCKED_CODE) || hasCodeDeep(c.message, META_BUSINESS_LOCKED_CODE))) {
+		lines.push(`ALERTA: Possível bloqueio Meta detectado (código ${META_BUSINESS_LOCKED_CODE} — Business Account locked)`)
+	}
 	lines.push('')
 
 	for (const c of checks) {
@@ -308,6 +334,34 @@ function buildReportText(
 	}
 
 	return lines.join('\n')
+}
+
+function summarizeHealthStatus(raw: any) {
+	const hs = raw?.health_status
+	const overall = String(hs?.can_send_message || '')
+	const entities = Array.isArray(hs?.entities) ? hs.entities : []
+	const blocked = entities.filter((e: any) => String(e?.can_send_message || '') === 'BLOCKED')
+	const limited = entities.filter((e: any) => String(e?.can_send_message || '') === 'LIMITED')
+
+	const errors = blocked
+		.flatMap((e: any) => (Array.isArray(e?.errors) ? e.errors : []))
+		.map((er: any) => ({
+			error_code: er?.error_code ?? null,
+			error_description: er?.error_description ?? null,
+			possible_solution: er?.possible_solution ?? null,
+		}))
+
+	const additionalInfo = limited
+		.flatMap((e: any) => (Array.isArray(e?.additional_info) ? e.additional_info : []))
+		.filter(Boolean)
+
+	return {
+		overall,
+		blockedEntities: blocked.map((e: any) => ({ entity_type: e?.entity_type, id: e?.id })),
+		limitedEntities: limited.map((e: any) => ({ entity_type: e?.entity_type, id: e?.id })),
+		errors,
+		additionalInfo,
+	}
 }
 
 /**
@@ -673,6 +727,63 @@ export async function GET() {
 			title: 'Número (tier/qualidade)',
 			status: 'warn',
 			message: 'Falha ao consultar phone number (best-effort)',
+			details: { error: e instanceof Error ? e.message : String(e) },
+		})
+	}
+
+	// 2d.1) Health Status (oficial) — forma mais confiável de saber se algo está BLOCKED/LIMITED
+	// Docs: /docs/whatsapp/cloud-api/health-status
+	try {
+		const hs = await graphGet(`/${credentials.phoneNumberId}`, credentials.accessToken, {
+			fields: 'health_status',
+		})
+		meta.healthStatus = hs.ok ? hs.json : hs.json
+
+		if (hs.ok) {
+			const summary = summarizeHealthStatus(hs.json)
+			const overall = summary.overall
+			const status: CheckStatus =
+				overall === 'BLOCKED'
+					? 'fail'
+					: overall === 'LIMITED'
+						? 'warn'
+						: overall === 'AVAILABLE'
+							? 'pass'
+							: 'info'
+
+			checks.push({
+				id: 'meta_health_status',
+				title: 'Status de integridade (envio) — Health Status',
+				status,
+				message:
+					overall === 'BLOCKED'
+						? 'Bloqueado para envio segundo Health Status'
+						: overall === 'LIMITED'
+							? 'Limitado para envio segundo Health Status'
+							: overall === 'AVAILABLE'
+								? 'Disponível para envio segundo Health Status'
+								: `Health Status: ${overall || '—'}`,
+				details: {
+					...summary,
+					raw: hs.json,
+					note: 'Este check é a forma mais direta (documentada) de confirmar bloqueios/limites na cadeia APP → BUSINESS → WABA → PHONE_NUMBER → TEMPLATE.',
+				},
+			})
+		} else {
+			checks.push({
+				id: 'meta_health_status',
+				title: 'Status de integridade (envio) — Health Status',
+				status: 'warn',
+				message: 'Não foi possível consultar health_status (best-effort)',
+				details: { error: hs.json?.error || hs.json },
+			})
+		}
+	} catch (e) {
+		checks.push({
+			id: 'meta_health_status',
+			title: 'Status de integridade (envio) — Health Status',
+			status: 'warn',
+			message: 'Falha ao consultar health_status (best-effort)',
 			details: { error: e instanceof Error ? e.message : String(e) },
 		})
 	}
