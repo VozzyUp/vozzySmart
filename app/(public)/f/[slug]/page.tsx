@@ -163,7 +163,14 @@ export default function PublicLeadFormPage({ params }: { params: { slug: string 
 
                 <div className="space-y-2">
                   <Label>Telefone (WhatsApp)</Label>
-                  <InternationalPhoneInput value={phone} onChange={setPhone} />
+                  <InternationalPhoneInput
+                    value={phone}
+                    onChange={setPhone}
+                    // Importante: manter SSR/CSR determinístico para evitar hydration mismatch
+                    // (React error #418 em produção).
+                    defaultCountry="br"
+                    preferredCountries={["br", "us", "pt", "mx", "ar", "cl", "co", "es"]}
+                  />
                 </div>
 
                 <div className="space-y-2">
