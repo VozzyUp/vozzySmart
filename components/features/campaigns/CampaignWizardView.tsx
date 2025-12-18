@@ -8,7 +8,9 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -756,8 +758,36 @@ export const CampaignWizardView: React.FC<CampaignWizardViewProps> = ({
     }
   };
 
-  // Hook must be called before any conditional returns
+  // Hooks must be called before any conditional returns
+  const router = useRouter();
   const { rate: exchangeRate, hasRate } = useExchangeRate();
+
+  const handleGoBack = () => {
+    // SSR safety
+    if (typeof window === 'undefined') {
+      router.push('/campaigns');
+      return;
+    }
+
+    const hasHistory = window.history.length > 1;
+    const ref = document.referrer;
+
+    let sameOriginReferrer = false;
+    if (ref) {
+      try {
+        sameOriginReferrer = new URL(ref).origin === window.location.origin;
+      } catch {
+        sameOriginReferrer = false;
+      }
+    }
+
+    // Prefer back when it looks like an in-app navigation; otherwise fall back.
+    if (hasHistory && (sameOriginReferrer || !ref)) {
+      router.back();
+    } else {
+      router.push('/campaigns');
+    }
+  };
 
   if (isLoading) return <div className="text-white">Carregando assistente...</div>;
 
@@ -779,20 +809,33 @@ export const CampaignWizardView: React.FC<CampaignWizardViewProps> = ({
 
   return (
     <div className="h-full flex flex-col py-4">
-      {/* Header Navigation */}
-      <div className="shrink-0 mb-4">
-        <PrefetchLink href="/campaigns" className="text-xs text-gray-500 hover:text-white inline-flex items-center gap-1 transition-colors">
-          <ChevronLeft size={12} /> Voltar para Campanhas
-        </PrefetchLink>
-      </div>
-
       {/* Main Bar: Title, Stepper, Cost */}
       <div className="flex items-center justify-between shrink-0 mb-8 gap-8">
         {/* Title */}
         <div className="shrink-0">
-          <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
-            Criar Campanha <span className="text-sm font-normal text-gray-500 bg-zinc-900 px-3 py-1 rounded-full border border-white/10">Rascunho</span>
-          </h1>
+          <div className="flex items-center gap-3">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={handleGoBack}
+                  aria-label="Voltar"
+                  className="border border-white/10 bg-zinc-900/40 text-gray-400 hover:text-white hover:bg-white/5"
+                >
+                  <ChevronLeft size={16} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" sideOffset={6} className="hidden md:block">
+                Voltar
+              </TooltipContent>
+            </Tooltip>
+
+            <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
+              Criar Campanha <span className="text-sm font-normal text-gray-500 bg-zinc-900 px-3 py-1 rounded-full border border-white/10">Rascunho</span>
+            </h1>
+          </div>
         </div>
 
         {/* Centralized Stepper */}
@@ -2144,8 +2187,8 @@ export const CampaignWizardView: React.FC<CampaignWizardViewProps> = ({
               </div>
             )}
 
-            {/* Navigation */}
-            <div className="flex justify-between items-center p-6 border-t border-white/5 bg-zinc-900/30 mt-auto">
+            {/* Navigation (mobile/tablet) */}
+            <div className="flex justify-between items-center p-6 border-t border-white/5 bg-zinc-900/30 mt-auto lg:hidden">
               {step > 1 ? (
                 <button
                   onClick={handleBack}
@@ -2199,7 +2242,7 @@ export const CampaignWizardView: React.FC<CampaignWizardViewProps> = ({
         </div>
 
         {/* Right Content - Preview Panel */}
-        <div className={`hidden lg:flex flex-col lg:col-span-3 bg-zinc-900/30 rounded-2xl border border-white/5 p-4 ${step === 2 && isOverLimit ? 'opacity-30 pointer-events-none' : ''}`}>
+        <div className="hidden lg:flex flex-col lg:col-span-3 bg-zinc-900/30 rounded-2xl border border-white/5 p-4">
           <div className="flex flex-col h-full">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2 text-gray-400 text-xs uppercase tracking-widest font-bold">
@@ -2209,9 +2252,9 @@ export const CampaignWizardView: React.FC<CampaignWizardViewProps> = ({
             </div>
 
             {/* Phone Mockup - Universal Component */}
-            <div className="flex-1 min-h-0 flex items-center justify-center">
+            <div className={`flex-1 min-h-0 flex items-center justify-center ${step === 2 && isOverLimit ? 'opacity-30 pointer-events-none' : ''}`}>
               <WhatsAppPhonePreview
-                className="w-[320px] h-[620px] max-h-full"
+                className="w-[320px] h-155 max-h-full"
                 components={previewTemplate?.components}
                 fallbackContent={previewTemplate?.content}
                 variables={(() => {
@@ -2300,6 +2343,58 @@ export const CampaignWizardView: React.FC<CampaignWizardViewProps> = ({
                 emptyStateMessage="Selecione um template ao lado para visualizar"
                 size="adaptive"
               />
+            </div>
+
+            {/* Navigation (desktop) */}
+            <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between gap-3">
+              {step > 1 ? (
+                <button
+                  onClick={handleBack}
+                  className="px-4 py-2 rounded-xl text-gray-400 font-medium hover:text-white transition-colors flex items-center gap-2 hover:bg-white/5"
+                >
+                  <ChevronLeft size={18} /> Voltar
+                </button>
+              ) : (
+                <div />
+              )}
+
+              {step < 3 ? (
+                // Hide button completely if over limit on Step 2 - the cards guide the user
+                step === 2 && isOverLimit ? null : (
+                  <button
+                    onClick={handleNext}
+                    className="group relative px-6 py-2.5 rounded-xl bg-white text-black font-bold hover:bg-gray-200 transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] overflow-hidden"
+                  >
+                    <span className="relative z-10 flex items-center gap-2">Continuar <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" /></span>
+                  </button>
+                )
+              ) : isOverLimit ? null : (
+                <button
+                  onClick={() => {
+                    if (scheduleMode === 'scheduled' && scheduledDate && scheduledTime) {
+                      const scheduledAt = new Date(`${scheduledDate}T${scheduledTime}`).toISOString();
+                      handleSend(scheduledAt);
+                    } else {
+                      handleSend();
+                    }
+                  }}
+                  disabled={isCreating || (scheduleMode === 'scheduled' && (!scheduledDate || !scheduledTime))}
+                  className={`group relative px-7 py-2.5 rounded-xl ${scheduleMode === 'scheduled'
+                    ? 'bg-purple-600 hover:bg-purple-500 shadow-[0_0_20px_rgba(147,51,234,0.4)] hover:shadow-[0_0_40px_rgba(147,51,234,0.6)]'
+                    : 'bg-primary-600 hover:bg-primary-500 shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_40px_rgba(16,185,129,0.6)]'
+                    } text-white font-bold transition-all flex items-center gap-2 hover:scale-105 ${isCreating || (scheduleMode === 'scheduled' && (!scheduledDate || !scheduledTime)) ? 'opacity-70 cursor-not-allowed' : ''}`}
+                >
+                  <span className="relative z-10 flex items-center gap-2">
+                    {isCreating
+                      ? 'Processando...'
+                      : scheduleMode === 'scheduled'
+                        ? 'Agendar Campanha'
+                        : 'Disparar Campanha'
+                    }
+                    {!isCreating && (scheduleMode === 'scheduled' ? <Calendar size={18} /> : <Zap size={18} className="fill-white" />)}
+                  </span>
+                </button>
+              )}
             </div>
           </div>
         </div>
