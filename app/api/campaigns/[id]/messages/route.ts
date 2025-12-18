@@ -70,8 +70,9 @@ export async function GET(request: Request, { params }: Params) {
         // "Enviado" = efetivamente disparado (exclui pending e skipped)
         query = query.in('status', ['sent', 'delivered', 'read', 'failed'])
       } else if (statusFilter === MessageStatus.DELIVERED) {
-        // Delivered matches Delivered + Read
-        query = query.in('status', ['delivered', 'read'])
+        // "Entregues" (status atual) = delivered (não inclui read)
+        // Observação: read é um status separado (e normalmente implica que já foi entregue).
+        query = query.eq('status', 'delivered')
       } else if (statusFilter === MessageStatus.READ) {
         query = query.eq('status', 'read')
       } else if (statusFilter === MessageStatus.SKIPPED) {

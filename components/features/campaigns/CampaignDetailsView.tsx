@@ -362,6 +362,7 @@ export const CampaignDetailsView: React.FC<CampaignDetailsViewProps> = ({
 
   const sentCountForUi = uiCounters.sent;
   const deliveredCountForUi = uiCounters.delivered;
+  const deliveredTotalForUi = uiCounters.deliveredTotal;
   const readCountForUi = uiCounters.read;
   const failedCountForUi = uiCounters.failed;
   // Performance sent-only "ao vivo" (melhora UX durante SENDING)
@@ -563,8 +564,8 @@ export const CampaignDetailsView: React.FC<CampaignDetailsViewProps> = ({
         <DetailCard
           title="Entregues"
           value={Number(deliveredCountForUi || 0).toLocaleString()}
-          subvalue={(deliveredCountForUi || 0) > 0
-            ? `${(((Number(deliveredCountForUi || 0)) / (campaign.recipients ?? 1)) * 100).toFixed(1)}% taxa de entrega`
+          subvalue={(deliveredTotalForUi || 0) > 0
+            ? `${(((Number(deliveredTotalForUi || 0)) / (campaign.recipients ?? 1)) * 100).toFixed(1)}% taxa de entrega`
             : (hasLiveStats ? 'Aguardando webhook' : 'Aguardando webhook')}
           icon={CheckCircle2}
           color="#10b981"

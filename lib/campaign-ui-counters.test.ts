@@ -9,21 +9,25 @@ describe('computeCampaignUiCounters', () => {
     })
 
     expect(counters.sent).toBe(173)
-    // delivered não pode cair para 50
-    expect(counters.delivered).toBe(165)
     // read deve refletir o maior observado
     expect(counters.read).toBe(36)
+    // deliveredTotal não pode cair para 50 (e deve ser >= read)
+    expect(counters.deliveredTotal).toBe(165)
+    expect(counters.deliveredTotal).toBeGreaterThanOrEqual(counters.read)
+    // delivered (não lidas) = deliveredTotal - read
+    expect(counters.delivered).toBe(165 - 36)
   })
 
-  it('garante progressão: delivered >= read', () => {
+  it('garante progressão no total: deliveredTotal >= read', () => {
     const counters = computeCampaignUiCounters({
       campaign: { delivered: 10, read: 12 },
       live: null,
     })
 
     expect(counters.read).toBe(12)
-    expect(counters.delivered).toBeGreaterThanOrEqual(counters.read)
-    expect(counters.delivered).toBe(12)
+    expect(counters.deliveredTotal).toBeGreaterThanOrEqual(counters.read)
+    expect(counters.deliveredTotal).toBe(12)
+    expect(counters.delivered).toBe(0)
   })
 
   it('usa live quando live é maior que campaign', () => {
@@ -33,7 +37,8 @@ describe('computeCampaignUiCounters', () => {
     })
 
     expect(counters.sent).toBe(12)
-    expect(counters.delivered).toBe(6)
+    expect(counters.deliveredTotal).toBe(6)
+    expect(counters.delivered).toBe(6 - 2)
     expect(counters.read).toBe(2)
     expect(counters.failed).toBe(1)
   })

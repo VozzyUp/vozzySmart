@@ -8,7 +8,18 @@ export type CounterSnapshot = {
 export function computeCampaignUiCounters(input: {
   campaign: CounterSnapshot
   live?: CounterSnapshot | null
-}): { sent: number; delivered: number; read: number; failed: number } {
+}): {
+  sent: number
+  /**
+   * Entregues (não lidas): equivalente ao status atual `delivered`.
+   * Útil para o card/filtro "Entregues".
+   */
+  delivered: number
+  /** Total de entregues efetivos (inclui lidas). Útil para taxa de entrega. */
+  deliveredTotal: number
+  read: number
+  failed: number
+} {
   const campaignSent = Number(input.campaign.sent ?? 0)
   const campaignDelivered = Number(input.campaign.delivered ?? 0)
   const campaignRead = Number(input.campaign.read ?? 0)
@@ -21,9 +32,14 @@ export function computeCampaignUiCounters(input: {
 
   const sent = Math.max(campaignSent, liveSent)
   const read = Math.max(campaignRead, liveRead)
-  // Garantia de progressão: delivered >= read
-  const delivered = Math.max(campaignDelivered, liveDelivered, read)
+  // `campaign.delivered` e `live.delivered` historicamente representam "entregues totais" (inclui lidas).
+  // Mantemos este valor para cálculo de taxa.
+  const deliveredTotal = Math.max(campaignDelivered, liveDelivered, read)
+
+  // Para o filtro/card "Entregues", queremos apenas quem ainda está em `delivered` (não inclui `read`).
+  // Como `read` é um status separado e normalmente implica entrega, aproximamos como: deliveredTotal - read.
+  const delivered = Math.max(0, deliveredTotal - read)
   const failed = Math.max(campaignFailed, liveFailed)
 
-  return { sent, delivered, read, failed }
+  return { sent, delivered, deliveredTotal, read, failed }
 }
