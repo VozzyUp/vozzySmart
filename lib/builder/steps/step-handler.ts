@@ -194,6 +194,7 @@ export async function withStepLogging<TInput extends StepInput, TOutput>(
       const errorResult = result as {
         success: false;
         error?: string | { message: string };
+        details?: unknown;
       };
       // Support both old format (error: string) and new format (error: { message: string })
       const errorMessage =
@@ -201,7 +202,9 @@ export async function withStepLogging<TInput extends StepInput, TOutput>(
           ? errorResult.error
           : errorResult.error?.message || "Step execution failed";
       // Log just the error object, not the full result
-      const loggedOutput = errorResult.error ?? { message: errorMessage };
+      const loggedOutput = errorResult.error
+        ? { error: errorResult.error, details: errorResult.details }
+        : { message: errorMessage, details: errorResult.details };
       await logStepComplete(logInfo, "error", loggedOutput, errorMessage);
     } else if (isStandardizedResult) {
       // For standardized success results, log just the data

@@ -42,3 +42,28 @@ export async function GET(_request: Request, { params }: RouteParams) {
 export async function POST() {
   return NextResponse.json({ success: true });
 }
+
+export async function DELETE(_request: Request, { params }: RouteParams) {
+  const { workflowId } = await params;
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return NextResponse.json(
+      { success: false, error: "Supabase not configured" },
+      { status: 400 }
+    );
+  }
+
+  const { error, count } = await supabase
+    .from("workflow_runs")
+    .delete({ count: "exact" })
+    .eq("workflow_id", workflowId);
+
+  if (error) {
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json({ success: true, deletedCount: count ?? 0 });
+}
