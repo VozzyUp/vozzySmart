@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { useQuery } from '@tanstack/react-query'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -25,6 +26,7 @@ import {
   CornerDownLeft,
   GripVertical,
   Loader2,
+  FileText,
   X,
 } from 'lucide-react'
 import {
@@ -53,6 +55,14 @@ import { flowsService } from '@/services/flowsService'
 type Spec = any
 
 type HeaderFormat = 'TEXT' | 'IMAGE' | 'VIDEO' | 'GIF' | 'DOCUMENT' | 'LOCATION'
+
+type HeaderMediaPreview = {
+  url: string
+  format: HeaderFormat
+  name: string
+  mimeType: string
+  size: number
+}
 
 type ButtonType =
   | 'QUICK_REPLY'
@@ -271,7 +281,7 @@ const panelClass = 'rounded-2xl border border-white/10 bg-zinc-900/60 shadow-[0_
 const panelPadding = 'p-6'
 const panelCompactPadding = 'p-4'
 
-function Preview({ spec }: { spec: Spec }) {
+function Preview({ spec, headerMediaPreview }: { spec: Spec; headerMediaPreview?: HeaderMediaPreview | null }) {
   const header = spec.header
   const bodyText = spec.body?.text || ''
   const footerText = spec.footer?.text || ''
@@ -289,6 +299,15 @@ function Preview({ spec }: { spec: Spec }) {
     if (header.format === 'TEXT') return header.text || ''
     if (header.format === 'LOCATION') return 'LOCALIZAÇÃO'
     return `MÍDIA (${header.format})`
+  })()
+
+  const resolvedHeaderMediaPreview = (() => {
+    if (!header) return null
+    const format = String(header?.format || '').toUpperCase()
+    if (format !== 'IMAGE' && format !== 'VIDEO' && format !== 'GIF' && format !== 'DOCUMENT') return null
+    if (!headerMediaPreview) return null
+    if (headerMediaPreview.format !== format) return null
+    return headerMediaPreview
   })()
 
   return (
@@ -321,7 +340,38 @@ function Preview({ spec }: { spec: Spec }) {
             <div className="p-3">
               <div className="max-w-90 rounded-xl bg-white text-zinc-900 shadow-sm overflow-hidden">
                 <div className="px-3 py-2">
-                {headerLabel ? (
+                {resolvedHeaderMediaPreview ? (
+                  <div className="mb-2">
+                    {resolvedHeaderMediaPreview.format === 'IMAGE' ? (
+                      <Image
+                        src={resolvedHeaderMediaPreview.url}
+                        alt={resolvedHeaderMediaPreview.name || 'Mídia do cabeçalho'}
+                        width={360}
+                        height={180}
+                        unoptimized
+                        className="w-full h-auto rounded-lg border border-zinc-200"
+                      />
+                    ) : resolvedHeaderMediaPreview.format === 'VIDEO' || resolvedHeaderMediaPreview.format === 'GIF' ? (
+                      <video
+                        src={resolvedHeaderMediaPreview.url}
+                        controls
+                        muted
+                        playsInline
+                        className="w-full rounded-lg border border-zinc-200"
+                      />
+                    ) : (
+                      <div className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
+                        <FileText className="w-4 h-4 text-zinc-600" />
+                        <div className="min-w-0">
+                          <div className="text-[12px] font-medium truncate">
+                            {resolvedHeaderMediaPreview.name || 'documento.pdf'}
+                          </div>
+                          <div className="text-[10px] text-zinc-500">Documento</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : headerLabel ? (
                   <div className="text-[13px] font-semibold leading-snug">
                     {headerLabel}
                   </div>
@@ -388,6 +438,8 @@ export function ManualTemplateBuilder({
   const [showDebug, setShowDebug] = React.useState(false)
   const [step, setStep] = React.useState(1)
 
+  const [headerMediaPreview, setHeaderMediaPreview] = React.useState<HeaderMediaPreview | null>(null)
+
   const [isUploadingHeaderMedia, setIsUploadingHeaderMedia] = React.useState(false)
   const [uploadHeaderMediaError, setUploadHeaderMediaError] = React.useState<string | null>(null)
 
@@ -425,6 +477,13 @@ export function ManualTemplateBuilder({
   React.useEffect(() => {
     setSpec(ensureBaseSpec(initialSpec))
   }, [initialSpec])
+
+  // Libera o object URL quando o preview muda ou o componente desmonta.
+  React.useEffect(() => {
+    return () => {
+      if (headerMediaPreview?.url) URL.revokeObjectURL(headerMediaPreview.url)
+    }
+  }, [headerMediaPreview?.url])
 
   const update = (patch: Partial<Spec>) => {
     setSpec((prev: any) => {
@@ -795,6 +854,16 @@ export function ManualTemplateBuilder({
     !limitedTimeOfferCategoryInvalid
 
   const canShowMediaSample = headerType === 'IMAGE' || headerType === 'VIDEO' || headerType === 'GIF' || headerType === 'DOCUMENT'
+  React.useEffect(() => {
+    if (!canShowMediaSample) {
+      if (headerMediaPreview) setHeaderMediaPreview(null)
+      return
+    }
+    if (headerMediaPreview && headerMediaPreview.format !== headerType) {
+      setHeaderMediaPreview(null)
+    }
+  }, [canShowMediaSample, headerType, headerMediaPreview])
+
   const headerMediaHandleValue = canShowMediaSample ? String(header?.example?.header_handle?.[0] || '').trim() : ''
   const isHeaderMediaHandleMissing = canShowMediaSample && !headerMediaHandleValue
   const nameValue = String(spec.name || '').trim()
@@ -1203,6 +1272,20 @@ export function ManualTemplateBuilder({
                         // Permite selecionar o mesmo arquivo novamente
                         e.currentTarget.value = ''
                         if (!file) return
+                        // Preview local (como a Meta faz). O header_handle não é um URL renderizável.
+                        const format = headerType as HeaderFormat
+                        try {
+                          const url = URL.createObjectURL(file)
+                          setHeaderMediaPreview({
+                            url,
+                            format,
+                            name: file.name,
+                            mimeType: file.type || '',
+                            size: file.size,
+                          })
+                        } catch {
+                          // Ignore: preview é opcional.
+                        }
                         void uploadHeaderMedia(file)
                       }}
                     />
@@ -2248,7 +2331,7 @@ export function ManualTemplateBuilder({
       </div>
 
       <div className="space-y-6 lg:sticky lg:top-6 self-start">
-        <Preview spec={spec} />
+        <Preview spec={spec} headerMediaPreview={headerMediaPreview} />
 
         <div className={`${panelClass} ${panelCompactPadding}`}>
           <details>
