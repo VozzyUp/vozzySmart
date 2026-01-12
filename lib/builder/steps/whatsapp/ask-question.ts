@@ -69,7 +69,7 @@ export async function askQuestionStep(
     }
 
     const debugPayload = input._debugAskQuestion;
-    const responseData =
+    const responseData: Record<string, unknown> =
       result.data && typeof result.data === "object"
         ? { ...(result.data as Record<string, unknown>) }
         : { value: result.data };
