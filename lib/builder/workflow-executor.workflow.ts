@@ -804,10 +804,46 @@ export async function executeWorkflow(
               nodeType: actionType,
             };
 
+            const nextNodes = edgesBySource.get(node.id) || [];
+            const actionInfo = findActionById(actionType);
+            const shouldDebugAskQuestion =
+              Boolean(processedConfig.variableKey) ||
+              isAskQuestionAction(actionType);
+            const debugAskQuestion = shouldDebugAskQuestion
+              ? {
+                  nodeId: node.id,
+                  nodeLabel: node.data.label ?? null,
+                  actionType,
+                  actionId: actionInfo?.id ?? null,
+                  actionSlug: actionInfo?.slug ?? null,
+                  isAskQuestion: isAskQuestionAction(actionType),
+                  variableKey: processedConfig.variableKey
+                    ? String(processedConfig.variableKey)
+                    : null,
+                  nextNodesCount: nextNodes.length,
+                  triggerFrom: (triggerInput?.from as string | undefined) ?? null,
+                  triggerTo: (triggerInput?.to as string | undefined) ?? null,
+                  workflowId: workflowId ?? null,
+                  executionId: executionId ?? null,
+                  resumeNodeId: null as string | null,
+                }
+              : null;
+
+            if (debugAskQuestion) {
+              processedConfig._debugAskQuestion = debugAskQuestion;
+              console.info("[AskQuestion] Preflight:", debugAskQuestion);
+            }
+
             let resumeNodeId: string | null = null;
             if (isAskQuestionAction(actionType)) {
-              const nextNodes = edgesBySource.get(node.id) || [];
               if (nextNodes.length === 0) {
+                if (debugAskQuestion) {
+                  debugAskQuestion.resumeNodeId = null;
+                  console.warn("[AskQuestion] No next node to resume:", {
+                    ...debugAskQuestion,
+                    reason: "missing_next_node",
+                  });
+                }
                 result = {
                   success: false,
                   error: "Ask Question requires a following node to resume.",
@@ -821,6 +857,13 @@ export async function executeWorkflow(
                 continue;
               }
               if (nextNodes.length > 1) {
+                if (debugAskQuestion) {
+                  debugAskQuestion.resumeNodeId = null;
+                  console.warn("[AskQuestion] Multiple next nodes:", {
+                    ...debugAskQuestion,
+                    reason: "multiple_next_nodes",
+                  });
+                }
                 result = {
                   success: false,
                   error: "Ask Question supports only one outgoing path.",
@@ -835,6 +878,10 @@ export async function executeWorkflow(
               }
               resumeNodeId = nextNodes[0];
               processedConfig.resumeNodeId = resumeNodeId;
+              if (debugAskQuestion) {
+                debugAskQuestion.resumeNodeId = resumeNodeId;
+                processedConfig._debugAskQuestion = debugAskQuestion;
+              }
             }
 
             const stepResult = await executeActionStep({
@@ -875,11 +922,23 @@ export async function executeWorkflow(
             ) {
               const variableKey = String(processedConfig.variableKey || "").trim();
               if (!variableKey) {
+                if (debugAskQuestion) {
+                  console.warn("[AskQuestion] Missing variable key:", {
+                    ...debugAskQuestion,
+                    reason: "missing_variable_key",
+                  });
+                }
                 result = {
                   success: false,
                   error: "Ask Question requires a variable key.",
                 };
               } else if (!workflowId || !executionId) {
+                if (debugAskQuestion) {
+                  console.warn("[AskQuestion] Missing workflow context:", {
+                    ...debugAskQuestion,
+                    reason: "missing_workflow_context",
+                  });
+                }
                 result = {
                   success: false,
                   error: "Workflow context missing for Ask Question.",
@@ -893,11 +952,24 @@ export async function executeWorkflow(
                 );
                 const normalizedPhone = normalizePhoneNumber(phoneRaw);
                 if (!supabase) {
+                  if (debugAskQuestion) {
+                    console.warn("[AskQuestion] Supabase not configured:", {
+                      ...debugAskQuestion,
+                      reason: "supabase_not_configured",
+                    });
+                  }
                   result = {
                     success: false,
                     error: "Supabase not configured for conversation storage.",
                   };
                 } else if (!normalizedPhone) {
+                  if (debugAskQuestion) {
+                    console.warn("[AskQuestion] Missing inbound phone:", {
+                      ...debugAskQuestion,
+                      reason: "missing_inbound_phone",
+                      phoneRaw,
+                    });
+                  }
                   result = {
                     success: false,
                     error: "Missing inbound phone number for Ask Question.",
@@ -912,6 +984,13 @@ export async function executeWorkflow(
                     variables,
                   });
                   if (!conversation) {
+                    if (debugAskQuestion) {
+                      console.warn("[AskQuestion] Failed to save conversation:", {
+                        ...debugAskQuestion,
+                        reason: "conversation_create_failed",
+                        normalizedPhone,
+                      });
+                    }
                     result = {
                       success: false,
                       error: "Failed to save conversation.",
