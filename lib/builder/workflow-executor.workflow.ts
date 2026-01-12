@@ -48,6 +48,28 @@ function isAskQuestionAction(actionType?: string): boolean {
   return action?.slug === "ask-question";
 }
 
+function shouldTreatAsAskQuestion(
+  actionType: string | undefined,
+  config: Record<string, unknown>
+): boolean {
+  if (isAskQuestionAction(actionType)) return true;
+  if (actionType === "Set Variable") return false;
+
+  const variableKey =
+    typeof config.variableKey === "string" ? config.variableKey.trim() : "";
+  if (!variableKey) return false;
+
+  const message =
+    typeof config.message === "string" ? config.message.trim() : "";
+  if (!message) return false;
+
+  const toSource =
+    typeof config.toSource === "string" ? config.toSource.trim() : "";
+  if (toSource !== "inbound" && toSource !== "manual") return false;
+
+  return true;
+}
+
 type ExecutionResult = {
   success: boolean;
   data?: unknown;
@@ -796,27 +818,34 @@ export async function executeWorkflow(
               processedConfig.condition = originalCondition;
             }
 
+            const isAskQuestion = shouldTreatAsAskQuestion(
+              actionType,
+              processedConfig
+            );
+            const effectiveActionType = isAskQuestion
+              ? "whatsapp/ask-question"
+              : actionType;
             const stepContext: StepContext = {
               executionId,
               workflowId,
               nodeId: node.id,
               nodeName: getNodeName(node),
-              nodeType: actionType,
+              nodeType: effectiveActionType,
             };
 
             const nextNodes = edgesBySource.get(node.id) || [];
-            const actionInfo = findActionById(actionType);
-            const shouldDebugAskQuestion =
-              Boolean(processedConfig.variableKey) ||
-              isAskQuestionAction(actionType);
+            const actionInfo = findActionById(effectiveActionType);
+            const shouldDebugAskQuestion = isAskQuestion;
             const debugAskQuestion = shouldDebugAskQuestion
               ? {
                   nodeId: node.id,
                   nodeLabel: node.data.label ?? null,
                   actionType,
+                  effectiveActionType,
                   actionId: actionInfo?.id ?? null,
                   actionSlug: actionInfo?.slug ?? null,
-                  isAskQuestion: isAskQuestionAction(actionType),
+                  isAskQuestion,
+                  forcedAskQuestion: isAskQuestion && !isAskQuestionAction(actionType),
                   variableKey: processedConfig.variableKey
                     ? String(processedConfig.variableKey)
                     : null,
@@ -835,7 +864,7 @@ export async function executeWorkflow(
             }
 
             let resumeNodeId: string | null = null;
-            if (isAskQuestionAction(actionType)) {
+            if (isAskQuestion) {
               if (nextNodes.length === 0) {
                 if (debugAskQuestion) {
                   debugAskQuestion.resumeNodeId = null;
@@ -885,7 +914,7 @@ export async function executeWorkflow(
             }
 
             let stepResult = await executeActionStep({
-              actionType,
+              actionType: effectiveActionType,
               config: processedConfig,
               outputs,
               context: stepContext,
@@ -919,11 +948,7 @@ export async function executeWorkflow(
               result = { success: true, data: stepResult };
             }
 
-            if (
-              isAskQuestionAction(actionType) &&
-              result.success &&
-              resumeNodeId
-            ) {
+            if (isAskQuestion && result.success && resumeNodeId) {
               const variableKey = String(processedConfig.variableKey || "").trim();
               if (!variableKey) {
                 if (debugAskQuestion) {

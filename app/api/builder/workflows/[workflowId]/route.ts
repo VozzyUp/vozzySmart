@@ -123,7 +123,7 @@ function normalizeNode(node: unknown): WorkflowNode {
       type,
       config:
         typeof data.config === "object" && data.config !== null
-          ? (data.config as Record<string, unknown>)
+          ? normalizeActionConfig(data.config as Record<string, unknown>)
           : undefined,
       status:
         data.status === "idle" ||
@@ -139,6 +139,55 @@ function normalizeNode(node: unknown): WorkflowNode {
         ? (node as { selected?: boolean }).selected
         : undefined,
   } as WorkflowNode;
+}
+
+function normalizeActionConfig(
+  config: Record<string, unknown>
+): Record<string, unknown> {
+  const actionType =
+    typeof config.actionType === "string" ? config.actionType : undefined;
+
+  const variableKey =
+    typeof config.variableKey === "string" ? config.variableKey.trim() : "";
+  const message =
+    typeof config.message === "string" ? config.message.trim() : "";
+  const toSource =
+    typeof config.toSource === "string" ? config.toSource.trim() : "";
+
+  const looksLikeAskQuestion =
+    Boolean(variableKey) &&
+    Boolean(message) &&
+    (toSource === "inbound" || toSource === "manual") &&
+    actionType !== "Set Variable";
+
+  if (!looksLikeAskQuestion) {
+    return config;
+  }
+
+  const nextConfig: Record<string, unknown> = {
+    ...config,
+    actionType: "whatsapp/ask-question",
+  };
+
+  const keysToDrop = [
+    "templateName",
+    "parameterFormat",
+    "bodyParams",
+    "headerParams",
+    "buttonParams",
+    "headerText",
+    "footer",
+    "language",
+    "body",
+    "buttons",
+  ];
+  for (const key of keysToDrop) {
+    if (key in nextConfig) {
+      delete nextConfig[key];
+    }
+  }
+
+  return nextConfig;
 }
 
 function normalizeEdge(edge: unknown): WorkflowEdge {
