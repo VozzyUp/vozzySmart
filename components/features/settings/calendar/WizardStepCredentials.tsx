@@ -106,8 +106,9 @@ export function WizardStepCredentials({
             <div className="text-[11px] font-semibold text-gray-300">Checklist rapido</div>
             <div className="mt-2 space-y-1">
               <div>1. Ative a Google Calendar API.</div>
-              <div>2. Crie credenciais OAuth (aplicacao web).</div>
-              <div>3. Cole o Redirect URI abaixo.</div>
+              <div>2. Configure a Tela de consentimento OAuth (adicione seu email como usuario de teste).</div>
+              <div>3. Crie credenciais OAuth (aplicacao web).</div>
+              <div>4. Cole o Redirect URI abaixo nas credenciais.</div>
             </div>
           </div>
 
