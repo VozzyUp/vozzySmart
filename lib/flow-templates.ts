@@ -10,6 +10,24 @@ export type FlowMappingV1 = {
   customFields?: Record<string, string>
 }
 
+export type FlowFormSpecV1 = {
+  version: 1
+  screenId: string
+  title: string
+  intro?: string
+  submitLabel: string
+  fields: Array<{
+    id: string
+    name: string
+    label: string
+    type: 'short_text' | 'long_text' | 'email' | 'phone' | 'number' | 'date' | 'dropdown' | 'single_choice' | 'multi_choice' | 'optin'
+    required: boolean
+    placeholder?: string
+    options?: Array<{ id: string; title: string }>
+    text?: string
+  }>
+}
+
 export type FlowTemplate = {
   key: string
   name: string
@@ -18,6 +36,10 @@ export type FlowTemplate = {
   flowJson: Record<string, unknown>
   /** Mapping padrão para salvar respostas no SmartZap. */
   defaultMapping: FlowMappingV1
+  /** Form spec pré-definido (opcional). Se presente, usado pelo builder em vez de converter flowJson. */
+  form?: FlowFormSpecV1
+  /** Indica se é um template dinâmico (usa data_exchange). */
+  isDynamic?: boolean
 }
 
 // Observação importante:
@@ -471,6 +493,21 @@ export const FLOW_TEMPLATES: FlowTemplate[] = [
     key: 'agendamento_dinamico_v1',
     name: 'Agendamento (Google Calendar)',
     description: 'Agendamento em tempo real com slots do Google Calendar. Requer endpoint configurado.',
+    isDynamic: true,
+    // Form simplificado para o builder - coleta dados básicos do cliente
+    // O Flow JSON completo com data_exchange é usado ao publicar
+    form: {
+      version: 1,
+      screenId: 'BOOKING',
+      title: 'Agendamento',
+      intro: 'Agendamento integrado com Google Calendar. Os horários disponíveis serão buscados em tempo real.',
+      submitLabel: 'Confirmar',
+      fields: [
+        { id: 'customer_name', name: 'customer_name', label: 'Nome', type: 'short_text', required: true },
+        { id: 'customer_phone', name: 'customer_phone', label: 'Telefone', type: 'phone', required: false },
+        { id: 'notes', name: 'notes', label: 'Observações', type: 'long_text', required: false },
+      ],
+    },
     flowJson: {
       version: '6.0',
       data_api_version: '3.0',

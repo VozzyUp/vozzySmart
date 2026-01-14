@@ -37,10 +37,24 @@ export function TemplateImportDialog({
     const tpl = FLOW_TEMPLATES.find((t) => t.key === selectedKey)
     if (!tpl) return
 
-    const nextForm = flowJsonToFormSpec(tpl.flowJson, flowName || 'MiniApp')
-    onImported(nextForm)
+    // Se o template tem form spec pré-definido, usa ele; senão converte do flowJson
+    const nextForm = tpl.form
+      ? { ...tpl.form, title: flowName || tpl.form.title }
+      : flowJsonToFormSpec(tpl.flowJson, flowName || 'MiniApp')
+
+    // Passa resultado completo incluindo flowJson dinâmico se aplicável
+    onImported({
+      form: nextForm,
+      dynamicFlowJson: tpl.isDynamic ? tpl.flowJson : undefined,
+      templateKey: tpl.key,
+    })
     onOpenChange(false)
-    toast.success('Modelo importado. Revise e salve quando estiver pronto.')
+
+    if (tpl.isDynamic) {
+      toast.success('Template dinâmico importado! O agendamento em tempo real será configurado ao publicar.')
+    } else {
+      toast.success('Modelo importado. Revise e salve quando estiver pronto.')
+    }
     onActionComplete?.()
   }
 
@@ -60,19 +74,28 @@ export function TemplateImportDialog({
               key={tpl.key}
               className={`flex items-start gap-3 rounded-xl border px-4 py-3 cursor-pointer transition ${
                 selectedKey === tpl.key
-                  ? 'border-emerald-400/40 bg-emerald-500/10'
+                  ? tpl.isDynamic
+                    ? 'border-purple-400/40 bg-purple-500/10'
+                    : 'border-emerald-400/40 bg-emerald-500/10'
                   : 'border-white/10 bg-zinc-900/60 hover:bg-white/5'
               }`}
             >
               <input
                 type="radio"
                 name="flow_template"
-                className="mt-1 h-4 w-4 accent-emerald-400"
+                className={`mt-1 h-4 w-4 ${tpl.isDynamic ? 'accent-purple-400' : 'accent-emerald-400'}`}
                 checked={selectedKey === tpl.key}
                 onChange={() => setSelectedKey(tpl.key)}
               />
-              <div>
-                <div className="text-sm font-semibold text-white">{tpl.name}</div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-white">{tpl.name}</span>
+                  {tpl.isDynamic && (
+                    <span className="px-1.5 py-0.5 text-[10px] bg-purple-500/20 text-purple-300 rounded">
+                      Tempo real
+                    </span>
+                  )}
+                </div>
                 <div className="text-xs text-gray-400">{tpl.description}</div>
               </div>
             </label>

@@ -23,6 +23,7 @@ import {
   AIGenerateDialog,
   TemplateImportDialog,
   FlowFormBuilderProps,
+  TemplateImportResult,
   createNewField,
   moveItem,
 } from './form-builder'
@@ -39,6 +40,8 @@ export function FlowFormBuilder(props: FlowFormBuilderProps) {
 
   const [form, setForm] = useState<FlowFormSpecV1>(initialForm)
   const [dirty, setDirty] = useState(false)
+  // Guarda o flowJson dinâmico se um template dinâmico foi importado
+  const [dynamicFlowJson, setDynamicFlowJson] = useState<Record<string, unknown> | null>(null)
 
   const [aiOpen, setAiOpen] = useState(false)
   const [templateOpen, setTemplateOpen] = useState(false)
@@ -167,9 +170,12 @@ export function FlowFormBuilder(props: FlowFormBuilderProps) {
     const nextForm = { ...form, title: (props.flowName || form.title || 'MiniApp').trim() || 'MiniApp' }
     const nextSpec = { ...baseSpec, form: nextForm }
 
+    // Se temos um flowJson dinâmico (de template dinâmico), usa ele em vez de gerar do form
+    const finalFlowJson = dynamicFlowJson || generateFlowJsonFromFormSpec(nextForm)
+
     props.onSave({
       spec: nextSpec,
-      flowJson: generateFlowJsonFromFormSpec(nextForm),
+      flowJson: finalFlowJson,
     })
     setDirty(false)
   }
@@ -179,8 +185,10 @@ export function FlowFormBuilder(props: FlowFormBuilderProps) {
     setDirty(true)
   }
 
-  const handleTemplateImported = (importedForm: FlowFormSpecV1) => {
-    setForm(importedForm)
+  const handleTemplateImported = (result: TemplateImportResult) => {
+    setForm(result.form)
+    // Se é template dinâmico, guarda o flowJson para usar ao salvar
+    setDynamicFlowJson(result.dynamicFlowJson || null)
     setDirty(true)
   }
 

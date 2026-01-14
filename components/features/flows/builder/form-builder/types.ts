@@ -104,13 +104,24 @@ export interface AIGenerateDialogProps {
 }
 
 /**
+ * Resultado da importação de template (inclui info sobre template dinâmico)
+ */
+export interface TemplateImportResult {
+  form: FlowFormSpecV1
+  /** Se é template dinâmico, inclui o flowJson pré-construído */
+  dynamicFlowJson?: Record<string, unknown>
+  /** Key do template (para referência) */
+  templateKey?: string
+}
+
+/**
  * Props for TemplateImportDialog component
  */
 export interface TemplateImportDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   flowName: string
-  onImported: (form: FlowFormSpecV1) => void
+  onImported: (result: TemplateImportResult) => void
   onActionComplete?: () => void
 }
 
