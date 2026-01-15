@@ -105,15 +105,14 @@ function parseTimeToMinutes(value: string): number {
 /**
  * Gera lista de datas disponiveis (proximos N dias uteis)
  * 
- * IMPORTANTE: Usa formatInTimeZone para calcular o dia da semana corretamente
- * independente do timezone do servidor (Vercel roda em UTC)
+ * IMPORTANTE: Trabalha apenas com strings de data (yyyy-MM-dd) para evitar
+ * problemas de timezone. O servidor Vercel roda em UTC.
  */
 async function getAvailableDates(daysToShow: number = 14): Promise<Array<{ id: string; title: string }>> {
   const config = await getCalendarBookingConfig()
   const timeZone = config.timezone
   
   // Pega a data atual no timezone correto (ex: America/Sao_Paulo)
-  // Usa formatInTimeZone para obter a data como string, depois parseia
   const todayStr = formatInTimeZone(new Date(), timeZone, 'yyyy-MM-dd')
   
   // Debug: log config
@@ -126,24 +125,32 @@ async function getAvailableDates(daysToShow: number = 14): Promise<Array<{ id: s
   })
 
   const dates: Array<{ id: string; title: string }> = []
-  let currentDateStr = todayStr
-  let attempts = 0
-  const maxAttempts = 60 // Evita loop infinito
+  
+  // Trabalha com offset de dias a partir de hoje
+  let dayOffset = 0
+  const maxAttempts = 60
 
-  while (dates.length < daysToShow && attempts < maxAttempts) {
-    // Calcula o dia da semana usando a string da data (evita problemas de timezone)
-    const dateForCalc = parseISO(currentDateStr)
-    // Usa formatInTimeZone para obter o dia da semana ISO (1=Mon, 7=Sun)
-    const isoDay = Number(formatInTimeZone(dateForCalc, timeZone, 'i'))
+  while (dates.length < daysToShow && dayOffset < maxAttempts) {
+    // Calcula a data adicionando dias à data atual
+    // Usa fromZonedTime para criar uma data no timezone correto
+    const [year, month, day] = todayStr.split('-').map(Number)
+    const baseDate = new Date(year, month - 1, day + dayOffset)
+    const dateStr = format(baseDate, 'yyyy-MM-dd')
+    
+    // Calcula o dia da semana (0=Dom, 1=Seg, ..., 6=Sab)
+    const jsDay = baseDate.getDay()
+    // Converte para ISO (1=Mon, 7=Sun)
+    const isoDay = jsDay === 0 ? 7 : jsDay
     const dayKey = WEEKDAY_KEYS[isoDay - 1]
     
     const workingDay = config.workingHours.find((d) => d.day === dayKey)
     const isWorking = workingDay?.enabled ?? false
     
     // Debug first 7 days
-    if (attempts < 7) {
+    if (dayOffset < 7) {
       console.log('[getAvailableDates] Day check:', {
-        date: currentDateStr,
+        date: dateStr,
+        jsDay,
         isoDay,
         dayKey,
         isWorking,
@@ -151,18 +158,15 @@ async function getAvailableDates(daysToShow: number = 14): Promise<Array<{ id: s
     }
     
     if (isWorking) {
-      // Formata o display usando a data parseada
-      const displayStr = formatInTimeZone(dateForCalc, timeZone, "EEEE, d 'de' MMM", { locale: ptBR })
+      // Formata o display
+      const displayStr = format(baseDate, "EEEE, d 'de' MMM", { locale: ptBR })
       dates.push({
-        id: currentDateStr,
+        id: dateStr,
         title: displayStr.charAt(0).toUpperCase() + displayStr.slice(1),
       })
     }
     
-    // Avança para o próximo dia
-    const nextDate = addDays(dateForCalc, 1)
-    currentDateStr = format(nextDate, 'yyyy-MM-dd')
-    attempts++
+    dayOffset++
   }
 
   console.log('[getAvailableDates] Result:', dates.length, 'dates, first:', dates[0]?.id)
