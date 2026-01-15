@@ -97,6 +97,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
 
   try {
     const input = PublishSchema.parse(await req.json().catch(() => ({})))
+    const wantsDebug = req.headers.get('x-debug-client') === '1'
 
     const credentials = await getWhatsAppCredentials()
     if (!credentials?.accessToken || !credentials.businessAccountId) {
@@ -211,6 +212,13 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
         endpointUri = url
       }
 
+      const flowJsonObj = flowJson && typeof flowJson === 'object' ? (flowJson as Record<string, unknown>) : null
+      const screens = Array.isArray((flowJsonObj as any)?.screens) ? (flowJsonObj as any).screens : []
+      const screenIds = screens.map((s: any) => String(s?.id || '')).filter(Boolean).slice(0, 6)
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/1294d6ce-76f2-430d-96ab-3ae4d7527327',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H6',location:'app/api/flows/[id]/meta/publish/route.ts:189',message:'meta create flow payload summary',data:{flowId:id,hasEndpointUri:Boolean(endpointUri),dataApiVersion:(flowJsonObj as any)?.data_api_version ?? null,flowJsonVersion:(flowJsonObj as any)?.version ?? null,screensCount:Array.isArray(screens)?screens.length:null,screenIds},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion agent log
+
       // Criar na Meta (com publish opcional em um único request)
       const created = await metaCreateFlow({
         accessToken: credentials.accessToken,
@@ -316,7 +324,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     const msg = error instanceof Error ? error.message : 'Falha ao publicar Flow'
 
     // Em dev, devolvemos detalhes do erro da Graph API para facilitar debug (sem incluir token).
-    if (process.env.NODE_ENV !== 'production' && error instanceof MetaGraphApiError) {
+    if ((process.env.NODE_ENV !== 'production' || wantsDebug) && error instanceof MetaGraphApiError) {
       return NextResponse.json(
         {
           error: msg,
@@ -324,9 +332,34 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
             status: error.status,
             graphError: (error.data as any)?.error ?? error.data,
           },
+          debug: wantsDebug
+            ? {
+                status: error.status,
+                graphError: (error.data as any)?.error ?? error.data,
+              }
+            : undefined,
         },
         { status: 400 }
       )
+    }
+
+    if (error instanceof MetaGraphApiError) {
+      const graphError = (error.data as any)?.error ?? error.data
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/1294d6ce-76f2-430d-96ab-3ae4d7527327',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H7',location:'app/api/flows/[id]/meta/publish/route.ts:294',message:'meta graph error',data:{status:error.status,code:graphError?.code ?? null,subcode:graphError?.error_subcode ?? null,message:graphError?.message ?? null,fbtraceId:graphError?.fbtrace_id ?? null},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion agent log
+      if (wantsDebug) {
+        return NextResponse.json(
+          {
+            error: msg,
+            debug: {
+              status: error.status,
+              graphError: (error.data as any)?.error ?? error.data,
+            },
+          },
+          { status: 400 }
+        )
+      }
     }
 
     return NextResponse.json({ error: msg }, { status: 400 })

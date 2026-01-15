@@ -164,11 +164,17 @@ export const flowsService = {
     const res = await fetch(`/api/flows/${encodeURIComponent(id)}/meta/publish`, {
       method: 'POST',
       credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-debug-client': '1',
+      },
       body: JSON.stringify(input || {}),
     })
 
     const data = await res.json().catch(() => null)
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/1294d6ce-76f2-430d-96ab-3ae4d7527327',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H8',location:'services/flowsService.ts:165',message:'publishToMeta response',data:{flowId:id,ok:res.ok,status:res.status,hasError:!res.ok,hasDebug:Boolean(data?.debug),error:data?.error ?? null,metaError:((data?.debug && (data.debug as any)?.graphError) ? true : false)},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion agent log
     if (!res.ok) {
       const msg = (data?.error && String(data.error)) || 'Falha ao publicar MiniApp na Meta'
       const details = data?.issues ? `: ${Array.isArray(data.issues) ? data.issues.join(', ') : String(data.issues)}` : ''

@@ -34,6 +34,10 @@
   - `app/api/flows/endpoint/keys/route.ts` expõe origem da URL para diagnóstico
   - `components/features/settings/FlowEndpointPanel.tsx` loga `header/env/stored`
 
+- **🧾 Debug seguro do publish**
+  - `app/api/flows/[id]/meta/publish/route.ts` retorna detalhes da Meta com `x-debug-client=1`
+  - `services/flowsService.ts` envia o header e registra o erro localmente
+
 ## 25/12/2025 - Debug (Run/Trace para campanhas)
 
 - **🔎 Timeline estruturada por `trace_id` (sem caçar logs)**
