@@ -73,7 +73,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     // Import AI dependencies dynamically
     const { createGoogleGenerativeAI } = await import('@ai-sdk/google')
-    const { generateText } = await import('ai')
+    const { generateText, stepCountIs } = await import('ai')
     const { withDevTools } = await import('@/lib/ai/devtools')
 
     // Get Gemini API key
@@ -123,14 +123,14 @@ Sempre cite a fonte quando usar informações da base de conhecimento.`
       console.log(`[ai-agents/test] Using File Search Store: ${agent.file_search_store_id} with ${indexedFilesCount} files`)
 
       // Use the File Search tool for RAG
-      // maxSteps allows multiple roundtrips for tool execution
+      // stopWhen: stepCountIs(5) allows multiple roundtrips for tool execution
       result = await generateText({
         model,
         system: systemPrompt,
         prompt: message,
         temperature: agent.temperature ?? 0.7,
         maxOutputTokens: agent.max_tokens ?? 1024,
-        maxSteps: 5, // Allow multiple roundtrips for tool calls
+        stopWhen: stepCountIs(5), // Allow up to 5 steps for tool calls
         tools: {
           file_search: google.tools.fileSearch({
             fileSearchStoreNames: [agent.file_search_store_id],

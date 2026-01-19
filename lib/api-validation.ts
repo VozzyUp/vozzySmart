@@ -88,6 +88,8 @@ export const CreateCampaignSchema = z.object({
   // flowId pode vir como string ou number do Meta API
   flowId: z.union([z.string(), z.number()]).transform(val => val?.toString() ?? null).optional().nullable(),
   flowName: z.string().max(200).optional().nullable(),
+  // Organização
+  folderId: z.string().uuid().optional().nullable(),
 })
 
 export const UpdateCampaignSchema = z.object({

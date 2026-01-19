@@ -491,11 +491,13 @@ export const CampaignListView: React.FC<CampaignListViewProps> = ({
                       onPause={onPause}
                       onResume={onResume}
                       onStart={onStart}
+                      onMoveToFolder={onMoveToFolder}
                       isPausing={isPausing}
                       isResuming={isResuming}
                       isStarting={isStarting}
                       deletingId={deletingId}
                       duplicatingId={duplicatingId}
+                      movingToFolderId={movingToFolderId}
                     />
                   ))
                 )}

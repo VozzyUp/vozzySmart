@@ -26,8 +26,10 @@ export function CampaignsClientWrapper({ initialData }: { initialData?: Campaign
         onDelete,
         onDuplicate,
         onRefresh,
+        onMoveToFolder,
         deletingId,
         duplicatingId,
+        movingToFolderId,
         lastDuplicatedCampaignId,
         clearLastDuplicatedCampaignId,
         folderFilter,
@@ -71,8 +73,10 @@ export function CampaignsClientWrapper({ initialData }: { initialData?: Campaign
                 onDelete={onDelete}
                 onDuplicate={onDuplicate}
                 onRowClick={handleRowClick}
+                onMoveToFolder={onMoveToFolder}
                 deletingId={deletingId}
                 duplicatingId={duplicatingId}
+                movingToFolderId={movingToFolderId}
                 folderFilter={folderFilter}
                 tagFilter={tagFilter}
                 onFolderFilterChange={setFolderFilter}

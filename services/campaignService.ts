@@ -30,6 +30,10 @@ interface CreateCampaignInput {
   // Flow/MiniApp fields
   flowId?: string | null;
   flowName?: string | null;
+  // Organização
+  folderId?: string | null;
+  // Se true, salva como rascunho sem disparar
+  isDraft?: boolean;
 }
 
 export interface CampaignListParams {
@@ -212,7 +216,7 @@ export const campaignService = {
   },
 
   create: async (input: CreateCampaignInput): Promise<Campaign> => {
-    const { name, templateName, recipients, selectedContacts, selectedContactIds, scheduledAt, templateVariables, flowId, flowName } = input;
+    const { name, templateName, recipients, selectedContacts, selectedContactIds, scheduledAt, templateVariables, flowId, flowName, folderId, isDraft } = input;
 
     // 1. Create campaign in Database (source of truth) with contacts
     const response = await fetch('/api/campaigns', {
@@ -229,6 +233,7 @@ export const campaignService = {
         status: scheduledAt ? CampaignStatus.SCHEDULED : CampaignStatus.SENDING,
         flowId,   // Flow/MiniApp ID (se template usar Flow)
         flowName, // Flow name para exibição
+        folderId, // Organização por pasta
       }),
     });
 
@@ -238,13 +243,19 @@ export const campaignService = {
 
     const newCampaign = await response.json();
 
-    // 2. If scheduled for later, don't dispatch now
+    // 2. If saving as draft, don't dispatch - keep as DRAFT status
+    if (isDraft) {
+      console.log(`Campaign ${newCampaign.id} saved as draft`);
+      return newCampaign;
+    }
+
+    // 3. If scheduled for later, don't dispatch now
     if (scheduledAt) {
       console.log(`Campaign ${newCampaign.id} scheduled for ${scheduledAt}`);
       return newCampaign;
     }
 
-    // 3. Dispatch to Backend immediately (Execution)
+    // 4. Dispatch to Backend immediately (Execution)
     // Se o dispatch falhar (ex.: QSTASH_TOKEN ausente), precisamos falhar visivelmente
     // para o usuário não ficar com campanha "Enviando" sem nada sair.
     if (selectedContacts && selectedContacts.length > 0) {

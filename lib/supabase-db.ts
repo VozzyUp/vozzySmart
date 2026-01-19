@@ -299,6 +299,7 @@ export const campaignDb = {
         templateVariables?: { header: string[], headerMediaId?: string, body: string[], buttons?: Record<string, string> }
         flowId?: string | null
         flowName?: string | null
+        folderId?: string | null
     }): Promise<Campaign> => {
         const id = generateId()
         const now = new Date().toISOString()
@@ -329,6 +330,7 @@ export const campaignDb = {
                 cancelled_at: null,
                 flow_id: campaign.flowId ?? null,
                 flow_name: campaign.flowName ?? null,
+                folder_id: campaign.folderId ?? null,
             })
             .select()
             .single()

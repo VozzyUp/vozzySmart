@@ -125,6 +125,7 @@ export async function POST(request: Request) {
       templateVariables: data.templateVariables,  // Now properly validated by Zod
       flowId: data.flowId,  // Flow/MiniApp reference (se o template usar Flow)
       flowName: data.flowName,
+      folderId: data.folderId,  // Organização por pasta
     })
 
     // If contacts were provided, add them to campaign_contacts
