@@ -1,12 +1,13 @@
 'use client'
 
 import React from 'react'
-import { Copy, Trash2, Calendar, Play, Pause, Loader2, Users } from 'lucide-react'
+import { Copy, Trash2, Calendar, Play, Pause, Loader2, Users, FolderIcon } from 'lucide-react'
 import { Campaign, CampaignStatus } from '../../../types'
 import { StatusBadge as DsStatusBadge } from '@/components/ui/status-badge'
 import { Progress } from '@/components/ui/progress'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
+import { CampaignTagList } from './CampaignTagBadge'
 
 // =============================================================================
 // CONSTANTS
@@ -94,11 +95,19 @@ export const CampaignCard = React.memo(
         onClick={() => onRowClick(campaign.id)}
         className="p-4 border border-white/10 rounded-xl bg-zinc-900/60 hover:bg-white/5 transition-all cursor-pointer hover:shadow-[0_0_20px_rgba(16,185,129,0.1)]"
       >
-        {/* Header: Name, Template, Status */}
+        {/* Header: Name, Template, Status, Tags */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <p className="font-medium text-white truncate">{campaign.name}</p>
-            <p className="text-xs text-gray-500 mt-0.5 font-mono truncate">{campaign.templateName}</p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <p className="text-xs text-gray-500 font-mono truncate">{campaign.templateName}</p>
+              {campaign.folder && (
+                <span className="flex items-center gap-1 text-xs text-zinc-500">
+                  <FolderIcon size={10} style={{ color: campaign.folder.color }} />
+                  <span className="truncate max-w-[80px]">{campaign.folder.name}</span>
+                </span>
+              )}
+            </div>
             {campaign.scheduledAt && campaign.status === CampaignStatus.SCHEDULED && (
               <p className="text-xs text-purple-400 mt-1 flex items-center gap-1">
                 <Calendar size={10} />
@@ -107,6 +116,12 @@ export const CampaignCard = React.memo(
                   timeStyle: 'short'
                 })}
               </p>
+            )}
+            {/* Tags */}
+            {campaign.tags && campaign.tags.length > 0 && (
+              <div className="mt-1.5">
+                <CampaignTagList tags={campaign.tags} maxVisible={2} size="sm" />
+              </div>
             )}
           </div>
           <StatusBadge status={campaign.status} />
@@ -247,6 +262,10 @@ export const CampaignCard = React.memo(
     prev.campaign.recipients === next.campaign.recipients &&
     prev.campaign.delivered === next.campaign.delivered &&
     prev.campaign.read === next.campaign.read &&
+    prev.campaign.folderId === next.campaign.folderId &&
+    prev.campaign.folder?.name === next.campaign.folder?.name &&
+    prev.campaign.folder?.color === next.campaign.folder?.color &&
+    JSON.stringify(prev.campaign.tags?.map(t => t.id)) === JSON.stringify(next.campaign.tags?.map(t => t.id)) &&
     prev.deletingId === next.deletingId &&
     prev.duplicatingId === next.duplicatingId &&
     prev.isPausing === next.isPausing &&

@@ -50,101 +50,12 @@ function LoginForm() {
             return
           }
 
-          console.log('🔍 [LOGIN] Not configured, redirecting to /setup/start')
-          router.push('/setup/start')
+          console.log('🔍 [LOGIN] Not configured, redirecting to /install/start')
+          router.push('/install/start')
         } else if (!data.isSetup) {
-          // UX: Em modo local (ou quando o setup foi feito via env vars), podemos ter
-          // infra ok mas empresa ainda não gravada na tabela settings.
-          // Antes de mandar o usuário de volta pro wizard, tentamos finalizar o setup
-          // uma única vez:
-          // 1) Preferência: usar os dados persistidos do wizard (localStorage) e chamar
-          //    /api/setup/complete-setup (não depende de SETUP_COMPANY_* em env).
-          // 2) Fallback: /api/setup/init-company (usa SETUP_COMPANY_* em env, idempotente).
-          try {
-            const attemptKey = 'smartzap_attempted_init_company'
-            const attempted = typeof window !== 'undefined' ? sessionStorage.getItem(attemptKey) : '1'
-
-            if (!attempted) {
-              sessionStorage.setItem(attemptKey, '1')
-
-              // (1) Tentar completar setup via dados do wizard no localStorage
-              try {
-                const raw = localStorage.getItem('smartzap_setup_data')
-                if (raw) {
-                  const parsed = JSON.parse(raw) as any
-                  const companyName = typeof parsed?.companyName === 'string' ? parsed.companyName : ''
-                  const companyAdmin = typeof parsed?.companyAdmin === 'string' ? parsed.companyAdmin : ''
-                  const email = typeof parsed?.email === 'string' ? parsed.email : ''
-                  const phone = typeof parsed?.phone === 'string' ? parsed.phone : ''
-
-                  // Só tenta se os campos mínimos existem (evita bater na API à toa)
-                  if (companyName && companyAdmin && email && phone) {
-                    console.log('🔍 [LOGIN] Attempting complete-setup using wizard localStorage data...')
-                    const completeRes = await fetch('/api/setup/complete-setup', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ companyName, companyAdmin, email, phone })
-                    })
-
-                    const completeJson = await completeRes.json().catch(() => null)
-                    if (completeRes.ok && completeJson?.success) {
-                      console.log('🔍 [LOGIN] complete-setup success; refetching auth status...')
-                      // Limpa o estado do wizard para não ficar tentando pra sempre
-                      localStorage.removeItem('smartzap_setup_data')
-                      localStorage.removeItem('smartzap_setup_step')
-
-                      const statusRes2 = await fetch('/api/auth/status')
-                      const data2 = await statusRes2.json()
-                      console.log('🔍 [LOGIN] Auth data after complete-setup:', JSON.stringify(data2, null, 2))
-
-                      if (data2?.isAuthenticated) {
-                        router.push('/')
-                        return
-                      }
-
-                      // Setup ok, mas ainda não autenticado? permanece na tela.
-                      if (data2?.company) setCompanyName(data2.company.name)
-                      return
-                    } else {
-                      console.log('🔍 [LOGIN] complete-setup did not succeed:', completeJson)
-                    }
-                  }
-                }
-              } catch (err) {
-                console.warn('🔍 [LOGIN] complete-setup attempt error:', err)
-              }
-
-              // (2) Fallback: tentar init-company via env (idempotente)
-              const initRes = await fetch('/api/setup/init-company', { method: 'GET' })
-              const initJson = await initRes.json().catch(() => null)
-              const initOk = !!(initJson && (initJson as any).success)
-
-              if (initOk) {
-                console.log('🔍 [LOGIN] init-company success; refetching auth status...')
-                const statusRes2 = await fetch('/api/auth/status')
-                const data2 = await statusRes2.json()
-                console.log('🔍 [LOGIN] Auth data after init-company:', JSON.stringify(data2, null, 2))
-
-                if (data2?.isSetup && data2?.isAuthenticated) {
-                  router.push('/')
-                  return
-                }
-
-                if (data2?.isSetup) {
-                  // Setup ok, mas ainda não autenticado. Fica no login normalmente.
-                  if (data2.company) setCompanyName(data2.company.name)
-                  return
-                }
-              } else {
-                console.log('🔍 [LOGIN] init-company skipped/failed:', initJson)
-              }
-            }
-          } catch (err) {
-            console.warn('🔍 [LOGIN] init-company attempt error:', err)
-          }
-
-          console.log('🔍 [LOGIN] Not setup, redirecting to /setup/wizard?resume=true')
-          router.push('/setup/wizard?resume=true')
+          // Instalação incompleta - redireciona para o wizard
+          console.log('🔍 [LOGIN] Not setup, redirecting to /install/wizard')
+          router.push('/install/wizard')
         } else if (data.isAuthenticated) {
           console.log('🔍 [LOGIN] Already authenticated, redirecting to /')
           router.push('/')

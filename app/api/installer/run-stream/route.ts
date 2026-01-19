@@ -56,38 +56,38 @@ const ALL_STEPS: Step[] = [
   { id: 'wait_vercel_deploy', phase: 'landing', weight: 10, skippable: false },
 ];
 
-// Mapeamento cinematográfico (estilo Interstellar)
+// Mapeamento cinematográfico (estilo Matrix)
 function createCinemaPhases(firstName: string) {
   return {
     coordinates: {
       id: 'coordinates',
-      title: 'Calibrando coordenadas',
-      subtitle: 'Definindo rota para o destino...',
+      title: 'Seguindo o coelho branco...',
+      subtitle: 'Estabelecendo conexão com a Matrix...',
     },
     signal: {
       id: 'signal',
-      title: 'Aguardando sinal',
-      subtitle: 'Confirmando conexão com o destino...',
+      title: 'Entrando na Matrix',
+      subtitle: 'A realidade está sendo construída...',
     },
     station: {
       id: 'station',
-      title: 'Construindo a base',
-      subtitle: 'Preparando infraestrutura...',
+      title: 'Instalando conhecimento',
+      subtitle: 'I know kung fu...',
     },
     contact: {
       id: 'contact',
-      title: 'Primeiro contato',
-      subtitle: 'Configurando identidade...',
+      title: 'Você é o Escolhido',
+      subtitle: 'Configurando sua identidade...',
     },
     landing: {
       id: 'landing',
-      title: 'Preparando pouso',
-      subtitle: 'Finalizando a jornada...',
+      title: 'A escolha foi feita',
+      subtitle: 'Livre sua mente...',
     },
     complete: {
       id: 'complete',
-      title: `Missão cumprida, ${firstName}!`,
-      subtitle: 'Bem-vindo ao SmartZap.',
+      title: `Bem-vindo à realidade, ${firstName}.`,
+      subtitle: 'Você tomou a pílula verde.',
     },
   } as const;
 }

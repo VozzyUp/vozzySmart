@@ -101,7 +101,7 @@ export async function checkAccountHealth(): Promise<AccountHealth> {
       checks.push({
         name: 'Fila de Mensagens (QStash)',
         status: 'warn',
-        message: health.services?.qstash?.message || 'Não configurado. Rode o assistente (/setup).',
+        message: health.services?.qstash?.message || 'Não configurado. Rode o assistente (/install/start).',
       });
     }
 
@@ -188,7 +188,7 @@ export async function quickHealthCheck(): Promise<{
     if (health.services?.qstash?.status !== 'ok') {
       return {
         canSend: false,
-        reason: health.services?.qstash?.message || 'QStash não configurado. Rode o assistente (/setup).',
+        reason: health.services?.qstash?.message || 'QStash não configurado. Rode o assistente (/install/start).',
       };
     }
 

@@ -6,7 +6,7 @@
  * Includes agent list, knowledge base, and test chat
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Bot } from 'lucide-react'
 import { Page, PageDescription, PageHeader, PageTitle } from '@/components/ui/page'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -22,6 +22,15 @@ import type { AIAgent } from '@/types'
 export default function AIAgentsSettingsPage() {
   const controller = useAIAgentsController()
   const [selectedAgent, setSelectedAgent] = useState<AIAgent | null>(null)
+
+  // Auto-select default agent (or first agent) when agents load
+  useEffect(() => {
+    if (controller.agents.length > 0 && !selectedAgent) {
+      // Prefer the default agent, otherwise pick the first one
+      const defaultAgent = controller.agents.find(a => a.is_default) ?? controller.agents[0]
+      setSelectedAgent(defaultAgent)
+    }
+  }, [controller.agents, selectedAgent])
 
   // Knowledge base controller (uses selected agent)
   const knowledgeBase = useKnowledgeBaseController(selectedAgent?.id ?? null)
@@ -73,21 +82,23 @@ export default function AIAgentsSettingsPage() {
               </TabsList>
 
               {/* Agent selector */}
-              <select
-                className="px-3 py-2 rounded-md bg-zinc-800 border border-zinc-700 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                value={selectedAgent?.id ?? ''}
-                onChange={(e) => {
-                  const agent = controller.agents.find((a) => a.id === e.target.value)
-                  setSelectedAgent(agent ?? null)
-                }}
-              >
-                <option value="">Selecione um agente</option>
-                {controller.agents.map((agent) => (
-                  <option key={agent.id} value={agent.id}>
-                    {agent.name} {agent.is_default && '(Padrão)'}
-                  </option>
-                ))}
-              </select>
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-zinc-400">Agente:</label>
+                <select
+                  className="px-3 py-2 rounded-md bg-zinc-800 border border-zinc-700 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-primary-500 min-w-[200px]"
+                  value={selectedAgent?.id ?? ''}
+                  onChange={(e) => {
+                    const agent = controller.agents.find((a) => a.id === e.target.value)
+                    setSelectedAgent(agent ?? null)
+                  }}
+                >
+                  {controller.agents.map((agent) => (
+                    <option key={agent.id} value={agent.id}>
+                      {agent.name} {agent.is_default && '(Padrão)'}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <TabsContent value="knowledge">

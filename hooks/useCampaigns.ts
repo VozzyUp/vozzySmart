@@ -31,18 +31,32 @@ const removeCampaignFromCache = (current: CampaignsQueryData, id: string): Campa
 
 // --- Data Hook (React Query + Realtime) ---
 export const useCampaignsQuery = (
-  params: { page: number; search: string; status: string },
+  params: {
+    page: number;
+    search: string;
+    status: string;
+    folderId?: string | null;
+    tagIds?: string[];
+  },
   initialData?: CampaignListResult
 ) => {
   const limit = PAGINATION.campaigns;
   const offset = Math.max(0, (params.page - 1) * limit);
   return useRealtimeQuery({
-    queryKey: ['campaigns', { page: params.page, search: params.search, status: params.status }],
+    queryKey: ['campaigns', {
+      page: params.page,
+      search: params.search,
+      status: params.status,
+      folderId: params.folderId,
+      tagIds: params.tagIds,
+    }],
     queryFn: () => campaignService.list({
       limit,
       offset,
       search: params.search,
       status: params.status,
+      folderId: params.folderId,
+      tagIds: params.tagIds,
     }),
     initialData,
     placeholderData: (previous) => previous,
@@ -125,6 +139,25 @@ export const useCampaignMutations = () => {
     },
   });
 
+  const [movingToFolderId, setMovingToFolderId] = useState<string | undefined>(undefined);
+
+  const moveToFolderMutation = useMutation({
+    mutationFn: ({ campaignId, folderId }: { campaignId: string; folderId: string | null }) =>
+      campaignService.updateCampaignFolder(campaignId, folderId),
+    onMutate: async ({ campaignId }) => {
+      setMovingToFolderId(campaignId);
+      await queryClient.cancelQueries({ queryKey: ['campaigns'] });
+    },
+    onSuccess: () => {
+      invalidateCampaigns(queryClient);
+      // Invalida também os folders para atualizar contagens
+      queryClient.invalidateQueries({ queryKey: ['campaign-folders'] });
+    },
+    onSettled: () => {
+      setMovingToFolderId(undefined);
+    },
+  });
+
   return {
     deleteCampaign: deleteMutation.mutate,
     isDeleting: deleteMutation.isPending,
@@ -133,6 +166,10 @@ export const useCampaignMutations = () => {
     duplicateCampaign: duplicateMutation.mutate,
     isDuplicating: duplicateMutation.isPending,
     duplicatingId: processingDuplicateId,
+
+    moveToFolder: moveToFolderMutation.mutate,
+    isMovingToFolder: moveToFolderMutation.isPending,
+    movingToFolderId,
 
     lastDuplicatedCampaignId,
     clearLastDuplicatedCampaignId: () => setLastDuplicatedCampaignId(undefined),
@@ -145,9 +182,17 @@ export const useCampaignsController = (initialData?: CampaignListResult) => {
   const [filter, setFilter] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [folderFilter, setFolderFilter] = useState<string | null>(null); // null = todas, 'none' = sem pasta, UUID = pasta específica
+  const [tagFilter, setTagFilter] = useState<string[]>([]); // IDs das tags para filtrar
 
   const { data, isLoading, error, refetch } = useCampaignsQuery(
-    { page: currentPage, search: searchTerm.trim(), status: filter },
+    {
+      page: currentPage,
+      search: searchTerm.trim(),
+      status: filter,
+      folderId: folderFilter,
+      tagIds: tagFilter.length > 0 ? tagFilter : undefined,
+    },
     initialData
   );
 
@@ -157,17 +202,20 @@ export const useCampaignsController = (initialData?: CampaignListResult) => {
   const {
     deleteCampaign,
     duplicateCampaign,
+    moveToFolder,
     isDeleting,
     deletingId,
     isDuplicating,
     duplicatingId,
+    isMovingToFolder,
+    movingToFolderId,
     lastDuplicatedCampaignId,
     clearLastDuplicatedCampaignId,
   } = useCampaignMutations();
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filter, searchTerm]);
+  }, [filter, searchTerm, folderFilter, tagFilter]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -189,6 +237,10 @@ export const useCampaignsController = (initialData?: CampaignListResult) => {
     duplicateCampaign(id);
   }, [duplicateCampaign]);
 
+  const handleMoveToFolder = useCallback((campaignId: string, folderId: string | null) => {
+    moveToFolder({ campaignId, folderId });
+  }, [moveToFolder]);
+
   return {
     // Data
     campaigns,
@@ -198,10 +250,14 @@ export const useCampaignsController = (initialData?: CampaignListResult) => {
     // State
     filter,
     searchTerm,
+    folderFilter,
+    tagFilter,
 
     // Setters
     setFilter,
     setSearchTerm,
+    setFolderFilter,
+    setTagFilter,
     currentPage,
     setCurrentPage,
     totalPages,
@@ -211,12 +267,15 @@ export const useCampaignsController = (initialData?: CampaignListResult) => {
     onDelete: handleDelete,
     onDuplicate: handleDuplicate,
     onRefresh: handleRefresh,
+    onMoveToFolder: handleMoveToFolder,
 
     // Loading states for specific items
     isDeleting,
     deletingId,
     isDuplicating,
     duplicatingId,
+    isMovingToFolder,
+    movingToFolderId,
 
     // Redirect helper (wrapper pode observar isso e navegar)
     lastDuplicatedCampaignId,

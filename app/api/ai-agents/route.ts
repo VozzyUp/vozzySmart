@@ -6,7 +6,16 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { createClient } from '@/lib/supabase-server'
+import { getSupabaseAdmin } from '@/lib/supabase'
+
+// Helper to get admin client with null check
+function getClient() {
+  const client = getSupabaseAdmin()
+  if (!client) {
+    throw new Error('Supabase admin client not configured. Check SUPABASE_SECRET_KEY env var.')
+  }
+  return client
+}
 
 // Create agent schema
 const createAgentSchema = z.object({
@@ -27,7 +36,7 @@ const createAgentSchema = z.object({
  */
 export async function GET() {
   try {
-    const supabase = await createClient()
+    const supabase = getClient()
 
     const { data: agents, error } = await supabase
       .from('ai_agents')
@@ -59,7 +68,7 @@ export async function GET() {
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const supabase = getClient()
 
     // Parse request body
     const body = await request.json()

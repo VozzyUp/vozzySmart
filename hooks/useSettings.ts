@@ -597,7 +597,7 @@ export const useSettingsController = () => {
       {
         id: 'qstash',
         title: 'QStash (Upstash)',
-        description: 'Filas de mensagens para processamento assíncrono de campanhas. Configure pelo assistente (/setup).',
+        description: 'Filas de mensagens para processamento assíncrono de campanhas. Configure pelo assistente (/install/start).',
         status: health?.services.qstash?.status === 'ok'
           ? 'configured'
           : health?.services.qstash?.status === 'error'
@@ -605,7 +605,7 @@ export const useSettingsController = () => {
             : 'pending',
         icon: React.createElement(Zap, { size: 20, className: 'text-purple-400' }),
         actionLabel: 'Abrir assistente',
-        actionUrl: '/setup',
+        actionUrl: '/install/start',
         errorMessage: health?.services.qstash?.message,
         isRequired: true,
       },

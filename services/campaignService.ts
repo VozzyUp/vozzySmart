@@ -1,4 +1,14 @@
-import { Campaign, CampaignStatus, Message, MessageStatus } from '../types';
+import {
+  Campaign,
+  CampaignStatus,
+  Message,
+  MessageStatus,
+  CampaignFolder,
+  CampaignTag,
+  CreateCampaignFolderDTO,
+  UpdateCampaignFolderDTO,
+  CreateCampaignTagDTO,
+} from '../types';
 import type { MissingParamDetail } from '../lib/whatsapp/template-contract';
 
 interface CreateCampaignInput {
@@ -27,6 +37,8 @@ export interface CampaignListParams {
   offset: number;
   search?: string;
   status?: string;
+  folderId?: string | null;  // null = todas, 'none' = sem pasta
+  tagIds?: string[];         // IDs das tags para filtrar
 }
 
 export interface CampaignListResult {
@@ -107,6 +119,8 @@ export const campaignService = {
     searchParams.set('offset', String(params.offset));
     if (params.search) searchParams.set('search', params.search);
     if (params.status && params.status !== 'All') searchParams.set('status', params.status);
+    if (params.folderId) searchParams.set('folderId', params.folderId);
+    if (params.tagIds && params.tagIds.length > 0) searchParams.set('tagIds', params.tagIds.join(','));
 
     const response = await fetch(`/api/campaigns?${searchParams.toString()}`);
     if (!response.ok) {
@@ -588,5 +602,131 @@ export const campaignService = {
       events: Array.isArray(payload?.events) ? payload.events : [],
       pagination: { total: typeof payload?.pagination?.total === 'number' ? payload.pagination.total : 0 },
     }
+  },
+
+  // ============================================================================
+  // FOLDERS
+  // ============================================================================
+
+  listFolders: async (): Promise<{
+    folders: CampaignFolder[];
+    totalCount: number;
+    unfiledCount: number;
+  }> => {
+    const response = await fetch('/api/campaigns/folders');
+    if (!response.ok) {
+      console.error('Failed to fetch folders:', response.statusText);
+      return { folders: [], totalCount: 0, unfiledCount: 0 };
+    }
+    return response.json();
+  },
+
+  createFolder: async (dto: CreateCampaignFolderDTO): Promise<CampaignFolder> => {
+    const response = await fetch('/api/campaigns/folders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dto),
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload?.error || 'Falha ao criar pasta');
+    }
+    return response.json();
+  },
+
+  updateFolder: async (id: string, dto: UpdateCampaignFolderDTO): Promise<CampaignFolder> => {
+    const response = await fetch(`/api/campaigns/folders/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dto),
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload?.error || 'Falha ao atualizar pasta');
+    }
+    return response.json();
+  },
+
+  deleteFolder: async (id: string): Promise<void> => {
+    const response = await fetch(`/api/campaigns/folders/${id}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload?.error || 'Falha ao deletar pasta');
+    }
+  },
+
+  // ============================================================================
+  // TAGS
+  // ============================================================================
+
+  listTags: async (): Promise<CampaignTag[]> => {
+    const response = await fetch('/api/campaigns/tags');
+    if (!response.ok) {
+      console.error('Failed to fetch tags:', response.statusText);
+      return [];
+    }
+    return response.json();
+  },
+
+  createTag: async (dto: CreateCampaignTagDTO): Promise<CampaignTag> => {
+    const response = await fetch('/api/campaigns/tags', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dto),
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload?.error || 'Falha ao criar tag');
+    }
+    return response.json();
+  },
+
+  deleteTag: async (id: string): Promise<void> => {
+    const response = await fetch(`/api/campaigns/tags/${id}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload?.error || 'Falha ao deletar tag');
+    }
+  },
+
+  // ============================================================================
+  // CAMPAIGN ORGANIZATION
+  // ============================================================================
+
+  updateCampaignFolder: async (campaignId: string, folderId: string | null): Promise<Campaign> => {
+    const response = await fetch(`/api/campaigns/${campaignId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ folderId }),
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload?.error || 'Falha ao atualizar pasta da campanha');
+    }
+    return response.json();
+  },
+
+  updateCampaignTags: async (campaignId: string, tagIds: string[]): Promise<Campaign> => {
+    const response = await fetch(`/api/campaigns/${campaignId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tagIds }),
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload?.error || 'Falha ao atualizar tags da campanha');
+    }
+    return response.json();
   },
 };

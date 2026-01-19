@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { InstallLayout, StepCard, ServiceIcon } from '@/components/install';
-import { CheckCircle, Loader2, AlertCircle, Rocket } from 'lucide-react';
+import { CheckCircle, Loader2, AlertCircle, Terminal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 // Storage keys
@@ -204,8 +204,8 @@ export default function InstallWizardPage() {
 
     setPhase('provisioning');
     setError(null);
-    setProvisioningTitle('Preparando decolagem...');
-    setProvisioningSubtitle('Iniciando sequência de instalação');
+    setProvisioningTitle('Wake up, Neo...');
+    setProvisioningSubtitle('A Matrix tem você...');
     setProvisioningProgress(0);
 
     abortControllerRef.current = new AbortController();
@@ -300,14 +300,14 @@ export default function InstallWizardPage() {
               animate={{ scale: 1, opacity: 1 }}
               className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-500/50 flex items-center justify-center"
             >
-              <Rocket className="w-8 h-8 text-emerald-500" />
+              <Terminal className="w-8 h-8 text-emerald-500" />
             </motion.div>
 
             <h2 className="mt-4 text-xl font-semibold text-zinc-100">
-              Pronto para decolar, {firstName}!
+              A escolha é sua, {firstName}.
             </h2>
             <p className="mt-2 text-sm text-zinc-400 max-w-sm">
-              Vamos configurar tudo automaticamente. Isso pode levar alguns minutos.
+              Pílula azul: voltar para onde estava. Pílula verde: descobrir até onde vai a toca do coelho.
             </p>
 
             {/* Summary */}
@@ -339,21 +339,21 @@ export default function InstallWizardPage() {
               </ul>
             </div>
 
-            {/* Actions */}
+            {/* Actions - Matrix Pills */}
             <div className="flex gap-3 mt-6 w-full">
               <Button
                 variant="outline"
-                className="flex-1"
+                className="flex-1 border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
                 onClick={() => router.push('/install/start')}
               >
-                Voltar
+                Pílula Azul
               </Button>
               <Button
                 variant="brand"
                 className="flex-1"
                 onClick={handleStartProvisioning}
               >
-                Iniciar Instalação
+                Pílula Verde
               </Button>
             </div>
           </div>
@@ -386,7 +386,7 @@ export default function InstallWizardPage() {
                 className="absolute inset-0 w-16 h-16 rounded-full border-2 border-emerald-500/20 border-t-emerald-500"
               />
               <div className="w-16 h-16 flex items-center justify-center">
-                <Rocket className="w-8 h-8 text-emerald-500" />
+                <Terminal className="w-8 h-8 text-emerald-500" />
               </div>
             </motion.div>
 
@@ -471,7 +471,7 @@ export default function InstallWizardPage() {
               transition={{ delay: 0.2 }}
               className="mt-6 text-xl font-semibold text-zinc-100"
             >
-              Missão cumprida, {firstName}!
+              Bem-vindo à realidade, {firstName}.
             </motion.h2>
             <motion.p
               initial={{ opacity: 0 }}
@@ -479,7 +479,7 @@ export default function InstallWizardPage() {
               transition={{ delay: 0.3 }}
               className="mt-2 text-sm text-zinc-400"
             >
-              Bem-vindo ao SmartZap
+              Você é o Escolhido.
             </motion.p>
 
             <motion.div
@@ -494,7 +494,7 @@ export default function InstallWizardPage() {
                 className="w-full"
                 onClick={handleGoToDashboard}
               >
-                Ir para o Dashboard
+                Entrar na Matrix
               </Button>
             </motion.div>
 
@@ -504,7 +504,7 @@ export default function InstallWizardPage() {
               transition={{ delay: 0.5 }}
               className="mt-4 text-xs text-zinc-500"
             >
-              Configure o WhatsApp em Configurações → Integrações
+              Não há colher. Configure o WhatsApp em Configurações.
             </motion.p>
           </div>
         </StepCard>
@@ -523,7 +523,7 @@ export default function InstallWizardPage() {
             </div>
 
             <h2 className="mt-6 text-xl font-semibold text-zinc-100">
-              Houston, temos um problema
+              Glitch na Matrix
             </h2>
             <p className="mt-2 text-sm text-red-400 max-w-sm">
               {error || 'Ocorreu um erro inesperado'}
@@ -535,14 +535,14 @@ export default function InstallWizardPage() {
                 className="flex-1"
                 onClick={() => router.push('/install/start')}
               >
-                Recomeçar
+                Reiniciar simulação
               </Button>
               <Button
                 variant="brand"
                 className="flex-1"
                 onClick={handleRetry}
               >
-                Tentar novamente
+                Tentar de novo
               </Button>
             </div>
           </div>

@@ -17,9 +17,20 @@ import {
 } from '@/lib/ai/ai-center-config'
 
 /**
- * Validate API key by making a minimal test call
+ * Validation result with support for warnings (valid but with issues)
  */
-async function validateApiKey(provider: string, apiKey: string): Promise<{ valid: boolean; error?: string }> {
+interface ValidationResult {
+    valid: boolean
+    error?: string
+    warning?: string
+}
+
+/**
+ * Validate API key by making a minimal test call
+ * Returns valid: true with warning if key works but has quota/billing issues
+ * Returns valid: false with error if key is completely invalid
+ */
+async function validateApiKey(provider: string, apiKey: string): Promise<ValidationResult> {
     try {
         let model;
 
@@ -57,23 +68,28 @@ async function validateApiKey(provider: string, apiKey: string): Promise<{ valid
         console.error('[AI Key Validation] Error:', message)
 
         // Parse common error messages for user-friendly responses
-        if (message.toLowerCase().includes('api key') || message.toLowerCase().includes('apikey')) {
+        if (message.toLowerCase().includes('api key') || message.toLowerCase().includes('apikey') || message.toLowerCase().includes('invalid')) {
             return { valid: false, error: 'Chave de API inválida. Verifique se a chave está correta e ativa.' }
         }
-        if (message.includes('quota') || message.includes('rate limit')) {
-            // Key is valid but quota exceeded - still valid
-            return { valid: true }
+
+        // Quota/Rate limit - key is valid but has billing/usage issues
+        if (message.includes('429') || message.includes('quota') || message.includes('rate limit') || message.includes('RESOURCE_EXHAUSTED')) {
+            return {
+                valid: false,
+                error: 'Quota excedida ou billing não configurado. Verifique seu plano em https://aistudio.google.com e configure o billing. Após configurar, gere uma nova chave.'
+            }
         }
+
         if (message.includes('401') || message.includes('Unauthorized')) {
-            return { valid: false, error: 'Chave de API não autorizada. Verifique as permissões da chave.' }
+            return { valid: false, error: 'Chave de API não autorizada. Verifique se a chave está correta.' }
         }
         if (message.includes('403') || message.includes('Forbidden')) {
-            return { valid: false, error: 'Acesso negado. A chave pode estar desativada ou sem permissões.' }
+            return { valid: false, error: 'Acesso negado. A chave pode estar desativada ou a API não está habilitada no projeto.' }
         }
         if (message.includes('404') || message.includes('not found')) {
-            return { valid: false, error: 'Modelo não encontrado. Verifique se sua conta tem acesso ao modelo.' }
+            return { valid: false, error: 'Modelo não encontrado. Verifique se sua conta tem acesso ao modelo selecionado.' }
         }
-        if (message.includes('ENOTFOUND') || message.includes('network')) {
+        if (message.includes('ENOTFOUND') || message.includes('network') || message.includes('ECONNREFUSED')) {
             return { valid: false, error: 'Erro de conexão. Verifique sua internet e tente novamente.' }
         }
 

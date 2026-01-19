@@ -127,6 +127,10 @@ export interface Campaign {
   flowName?: string | null;
   // Computed field (somente no detalhe da campanha)
   submissionsCount?: number;
+  // Organization (Folders & Tags)
+  folderId?: string | null;
+  folder?: CampaignFolder | null;
+  tags?: CampaignTag[];
 }
 
 export interface Contact {
@@ -732,4 +736,39 @@ export interface KnowledgeFile {
   error: string | null;
   indexed_at: string | null;
   created_at: string;
+}
+
+// =============================================================================
+// CAMPAIGN ORGANIZATION (Folders & Tags)
+// =============================================================================
+
+export interface CampaignFolder {
+  id: string;
+  name: string;
+  color: string;
+  createdAt: string;
+  updatedAt: string;
+  campaignCount?: number; // Computed
+}
+
+export interface CampaignTag {
+  id: string;
+  name: string;
+  color: string;
+  createdAt: string;
+}
+
+export interface CreateCampaignFolderDTO {
+  name: string;
+  color?: string;
+}
+
+export interface UpdateCampaignFolderDTO {
+  name?: string;
+  color?: string;
+}
+
+export interface CreateCampaignTagDTO {
+  name: string;
+  color?: string;
 }

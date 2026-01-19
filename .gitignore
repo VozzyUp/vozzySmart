@@ -85,3 +85,4 @@ tmp/
 
 # Auto Claude data directory
 .auto-claude/
+.devtools

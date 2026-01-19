@@ -1,13 +1,17 @@
 'use client'
 
-import { useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCampaignsController } from '@/hooks/useCampaigns'
 import { CampaignListView } from '@/components/features/campaigns/CampaignListView'
+import { OrganizationModals } from '@/components/features/campaigns/OrganizationModals'
 import type { CampaignListResult } from '@/services/campaignService'
 
 export function CampaignsClientWrapper({ initialData }: { initialData?: CampaignListResult }) {
     const router = useRouter()
+    const [organizationModalOpen, setOrganizationModalOpen] = useState(false)
+    const [organizationModalTab, setOrganizationModalTab] = useState<'folders' | 'tags'>('folders')
+
     const {
         campaigns,
         isLoading,
@@ -26,6 +30,10 @@ export function CampaignsClientWrapper({ initialData }: { initialData?: Campaign
         duplicatingId,
         lastDuplicatedCampaignId,
         clearLastDuplicatedCampaignId,
+        folderFilter,
+        tagFilter,
+        setFolderFilter,
+        setTagFilter,
     } = useCampaignsController(initialData)
 
     // Memoiza handler para evitar re-renders desnecessários no CampaignTableRow
@@ -40,24 +48,43 @@ export function CampaignsClientWrapper({ initialData }: { initialData?: Campaign
         clearLastDuplicatedCampaignId?.()
     }, [lastDuplicatedCampaignId, router, clearLastDuplicatedCampaignId])
 
+    // Handler para abrir modal de organização (pastas/tags)
+    const handleManageFolders = useCallback(() => {
+        setOrganizationModalTab('folders')
+        setOrganizationModalOpen(true)
+    }, [])
+
     return (
-        <CampaignListView
-            campaigns={campaigns}
-            isLoading={isLoading}
-            filter={filter}
-            searchTerm={searchTerm}
-            onFilterChange={setFilter}
-            onSearchChange={setSearchTerm}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalFiltered={totalFiltered}
-            onPageChange={setCurrentPage}
-            onRefresh={onRefresh}
-            onDelete={onDelete}
-            onDuplicate={onDuplicate}
-            onRowClick={handleRowClick}
-            deletingId={deletingId}
-            duplicatingId={duplicatingId}
-        />
+        <>
+            <CampaignListView
+                campaigns={campaigns}
+                isLoading={isLoading}
+                filter={filter}
+                searchTerm={searchTerm}
+                onFilterChange={setFilter}
+                onSearchChange={setSearchTerm}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalFiltered={totalFiltered}
+                onPageChange={setCurrentPage}
+                onRefresh={onRefresh}
+                onDelete={onDelete}
+                onDuplicate={onDuplicate}
+                onRowClick={handleRowClick}
+                deletingId={deletingId}
+                duplicatingId={duplicatingId}
+                folderFilter={folderFilter}
+                tagFilter={tagFilter}
+                onFolderFilterChange={setFolderFilter}
+                onTagFilterChange={setTagFilter}
+                onManageFolders={handleManageFolders}
+            />
+
+            <OrganizationModals
+                isOpen={organizationModalOpen}
+                onClose={() => setOrganizationModalOpen(false)}
+                defaultTab={organizationModalTab}
+            />
+        </>
     )
 }

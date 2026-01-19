@@ -16,8 +16,8 @@ export const config = {
 }
 
 // Routes that don't require user authentication
-const PUBLIC_PAGES = ['/login', '/setup', '/debug-auth', '/f']
-const PUBLIC_API_ROUTES = ['/api/auth', '/api/webhook', '/api/health', '/api/system', '/api/setup', '/api/debug', '/api/database', '/api/campaign/workflow', '/api/account/alerts', '/api/public/lead-forms', '/api/builder']
+const PUBLIC_PAGES = ['/login', '/install', '/debug-auth', '/f']
+const PUBLIC_API_ROUTES = ['/api/auth', '/api/webhook', '/api/health', '/api/system', '/api/installer', '/api/debug', '/api/database', '/api/campaign/workflow', '/api/account/alerts', '/api/public/lead-forms', '/api/builder']
 
 export async function proxy(request: NextRequest) {
     const pathname = request.nextUrl.pathname
@@ -47,72 +47,64 @@ export async function proxy(request: NextRequest) {
     }
 
     // ==========================================================================
-    // BOOTSTRAP CHECK - Redirect to setup if not configured
+    // BOOTSTRAP CHECK - Redirect to installer if not configured
     // ==========================================================================
     const hasMasterPassword = !!process.env.MASTER_PASSWORD
 
     // ==========================================================================
-    // SETUP LOCKDOWN (produção)
-    // - Após o setup, ninguém “anônimo” deveria conseguir abrir o wizard
-    // - As APIs de setup também não devem ficar abertas após concluído
+    // INSTALLER LOCKDOWN (produção)
+    // - Após a instalação, ninguém "anônimo" deveria conseguir abrir o wizard
+    // - As APIs do installer também não devem ficar abertas após concluído
     //   (exceto com sessão ou admin key)
     // ==========================================================================
-    // Em produção, se já existe MASTER_PASSWORD, o setup não pode ser público.
-    // Isso protege mesmo quando SETUP_COMPLETE não estiver setado corretamente.
-    const shouldLockSetup = process.env.NODE_ENV === 'production' && hasMasterPassword
-    const isSetupPage = pathname === '/setup' || pathname.startsWith('/setup/')
-    const isSetupApi = pathname.startsWith('/api/setup')
+    // Em produção, se já existe MASTER_PASSWORD, o installer não pode ser público.
+    // Isso protege mesmo quando INSTALLER_ENABLED não estiver setado corretamente.
+    const shouldLockInstaller = process.env.NODE_ENV === 'production' && hasMasterPassword
+    const isInstallerPage = pathname === '/install' || pathname.startsWith('/install/')
+    const isInstallerApi = pathname.startsWith('/api/installer')
 
-    if (shouldLockSetup && (isSetupPage || isSetupApi)) {
+    if (shouldLockInstaller && (isInstallerPage || isInstallerApi)) {
         // Para páginas: exige sessão (login)
-        if (isSetupPage) {
+        if (isInstallerPage) {
             if (!sessionCookie?.value) {
                 const loginUrl = new URL('/login', request.url)
-                loginUrl.searchParams.set('reason', 'setup_locked')
+                loginUrl.searchParams.set('reason', 'installer_locked')
                 loginUrl.searchParams.set('redirect', pathname)
                 return NextResponse.redirect(loginUrl)
             }
         }
 
         // Para APIs: permite sessão OU admin key
-        if (isSetupApi) {
+        if (isInstallerApi) {
             if (sessionCookie?.value) {
                 return NextResponse.next()
             }
 
             const adminAuth = await verifyAdminAccess(request)
             if (!adminAuth.valid) {
-                return unauthorizedResponse('Setup API bloqueada após setup. Faça login ou use SMARTZAP_ADMIN_KEY.')
+                return unauthorizedResponse('Installer API bloqueada após instalação. Faça login ou use SMARTZAP_ADMIN_KEY.')
             }
             return NextResponse.next()
         }
     }
 
-    // If not configured and not already on setup, redirect immediately
+    // If not configured and not already on install, redirect immediately
     if (!hasMasterPassword) {
-        if (!pathname.startsWith('/setup') && !pathname.startsWith('/api')) {
-            const setupUrl = new URL('/setup/start', request.url)
-            return NextResponse.redirect(setupUrl)
+        if (!pathname.startsWith('/install') && !pathname.startsWith('/api')) {
+            const installUrl = new URL('/install/start', request.url)
+            return NextResponse.redirect(installUrl)
         }
     }
 
-    // If configured but setup not complete (company info missing), go to wizard.
+    // If configured but install not complete, go to wizard.
     // IMPORTANT:
-    // - Não force o wizard aqui. Em dev/local, a completude do setup pode ser detectada via DB,
-    //   enquanto SETUP_COMPLETE é uma env que pode não refletir o estado real.
-    // - Para ser mais “à prova de falhas”, sempre deixe o usuário cair em /login quando não houver
+    // - Não force o wizard aqui. Em dev/local, a completude da instalação pode ser detectada via DB,
+    //   enquanto INSTALLER_ENABLED é uma env que controla se o installer está disponível.
+    // - Para ser mais "à prova de falhas", sempre deixe o usuário cair em /login quando não houver
     //   sessão, e deixe o /login decidir (via /api/auth/status) se precisa mandar para o wizard.
     // - Se existir session cookie, deixa passar.
     //
-    // Obs: o redirect para /login já é feito mais abaixo para páginas protegidas; então aqui só
-    // evitamos empurrar o usuário para /setup/wizard?resume=true baseado apenas em env.
-
-    // If configured and on OLD bootstrap setup, redirect to login or new start?
-    // Actually, if configured, we might want to allow /setup/start if user WANTS to fix envs.
-    // But generally, the legacy logic redirected to login.
-    // Let's REMOVE the forced redirect to login if /setup/bootstrap is visited, 
-    // because we renamed it to /setup/start and we want to allow re-configuration if needed.
-    // However, we should block /setup/bootstrap (old) to avoid 404? No, it's 404 anyway.
+    // Obs: o redirect para /login já é feito mais abaixo para páginas protegidas.
 
     // ==========================================================================
     // API Routes - Use API Key authentication

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { campaignDb } from '@/lib/supabase-db'
+import { campaignDb, campaignFolderDb, campaignTagDb } from '@/lib/supabase-db'
 import { supabase } from '@/lib/supabase'
 
 // Force dynamic rendering (no caching)
@@ -11,7 +11,7 @@ interface Params {
 
 /**
  * GET /api/campaigns/[id]
- * Get a single campaign
+ * Get a single campaign with folder and tags
  */
 export async function GET(request: Request, { params }: Params) {
   try {
@@ -38,9 +38,16 @@ export async function GET(request: Request, { params }: Params) {
       }
     }
 
+    // Buscar folder e tags
+    let folder = null
+    if (campaign.folderId) {
+      folder = await campaignFolderDb.getById(campaign.folderId)
+    }
+    const tags = await campaignTagDb.getForCampaign(id)
+
     // No cache for campaign data (needs real-time updates)
     return NextResponse.json(
-      { ...campaign, submissionsCount },
+      { ...campaign, submissionsCount, folder, tags },
       {
         headers: {
           'Cache-Control': 'no-store, no-cache, must-revalidate',
@@ -60,13 +67,18 @@ export async function GET(request: Request, { params }: Params) {
 
 /**
  * PATCH /api/campaigns/[id]
- * Update a campaign
+ * Update a campaign (including folderId and tagIds)
  */
 export async function PATCH(request: Request, { params }: Params) {
   try {
     const { id } = await params
     const body = await request.json()
-    const campaign = await campaignDb.updateStatus(id, body)
+
+    // Extrair tagIds do body (se presente)
+    const { tagIds, ...updateData } = body
+
+    // Atualizar campanha (incluindo folderId se presente)
+    const campaign = await campaignDb.updateStatus(id, updateData)
 
     if (!campaign) {
       return NextResponse.json(
@@ -75,7 +87,19 @@ export async function PATCH(request: Request, { params }: Params) {
       )
     }
 
-    return NextResponse.json(campaign)
+    // Se tagIds foi fornecido, atualizar as tags da campanha
+    if (tagIds !== undefined && Array.isArray(tagIds)) {
+      await campaignTagDb.assignToCampaign(id, tagIds)
+    }
+
+    // Buscar folder e tags atualizadas
+    let folder = null
+    if (campaign.folderId) {
+      folder = await campaignFolderDb.getById(campaign.folderId)
+    }
+    const tags = await campaignTagDb.getForCampaign(id)
+
+    return NextResponse.json({ ...campaign, folder, tags })
   } catch (error) {
     console.error('Failed to update campaign:', error)
     return NextResponse.json(

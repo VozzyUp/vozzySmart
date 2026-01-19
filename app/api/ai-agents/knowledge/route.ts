@@ -1,12 +1,32 @@
 /**
  * T057: Knowledge Base API
  * Manage knowledge base files for AI agents
- * Integrates with Google File Search (Gemini)
+ * Integrates with Google File Search Store for RAG
+ *
+ * Flow:
+ * 1. Upload file → File Search Store (auto-indexed for semantic search)
+ * 2. Store metadata in database
+ * 3. Test endpoint uses google.tools.fileSearch() to query indexed docs
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase-server'
+import { getSupabaseAdmin } from '@/lib/supabase'
 import { z } from 'zod'
+import {
+  ensureFileSearchStore,
+  uploadToFileSearchStore,
+  waitForOperation,
+  deleteFileFromStore,
+} from '@/lib/ai/file-search-store'
+
+// Helper to get admin client with null check
+function getClient() {
+  const client = getSupabaseAdmin()
+  if (!client) {
+    throw new Error('Supabase admin client not configured. Check SUPABASE_SECRET_KEY env var.')
+  }
+  return client
+}
 
 const uploadFileSchema = z.object({
   agent_id: z.string().uuid('ID do agente inválido'),
@@ -15,10 +35,20 @@ const uploadFileSchema = z.object({
   mime_type: z.string().default('text/plain'),
 })
 
+/**
+ * Sanitize content for PostgreSQL TEXT fields
+ * Removes null bytes (\u0000) which PostgreSQL doesn't support
+ */
+function sanitizeContent(content: string): string {
+  // Remove null bytes that PostgreSQL can't store in TEXT fields
+  // eslint-disable-next-line no-control-regex
+  return content.replace(/\u0000/g, '')
+}
+
 // GET - List knowledge base files for an agent
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const supabase = getClient()
     const { searchParams } = new URL(request.url)
     const agentId = searchParams.get('agent_id')
 
@@ -71,7 +101,7 @@ export async function GET(request: NextRequest) {
 // POST - Upload a new knowledge base file
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const supabase = getClient()
     const body = await request.json()
 
     // Validate body
@@ -85,10 +115,10 @@ export async function POST(request: NextRequest) {
 
     const { agent_id, name, content, mime_type } = parsed.data
 
-    // Validate agent exists
+    // Validate agent exists and get file_search_store_id
     const { data: agent, error: agentError } = await supabase
       .from('ai_agents')
-      .select('id, file_search_store_id')
+      .select('id, name, file_search_store_id')
       .eq('id', agent_id)
       .single()
 
@@ -100,12 +130,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Get Gemini API key for file upload
-    const { data: settings } = await supabase
+    const { data: geminiSetting } = await supabase
       .from('settings')
-      .select('gemini_api_key')
-      .single()
+      .select('value')
+      .eq('key', 'gemini_api_key')
+      .maybeSingle()
 
-    const apiKey = settings?.gemini_api_key || process.env.GEMINI_API_KEY
+    const apiKey = geminiSetting?.value || process.env.GEMINI_API_KEY
 
     if (!apiKey) {
       return NextResponse.json(
@@ -114,44 +145,78 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Upload file to Gemini File API
-    let fileUri: string | null = null
-    let fileId: string | null = null
+    // Ensure File Search Store exists for this agent
+    let fileSearchStoreName = agent.file_search_store_id
 
     try {
-      // Create a blob from the content
-      const blob = new Blob([content], { type: mime_type })
-
-      // Upload to Gemini Files API
-      const formData = new FormData()
-      formData.append('file', blob, name)
-
-      const uploadResponse = await fetch(
-        `https://generativelanguage.googleapis.com/upload/v1beta/files?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: {
-            'X-Goog-Upload-Command': 'start, upload, finalize',
-            'X-Goog-Upload-Header-Content-Length': blob.size.toString(),
-            'X-Goog-Upload-Header-Content-Type': mime_type,
-          },
-          body: blob,
-        }
+      fileSearchStoreName = await ensureFileSearchStore(
+        apiKey,
+        agent_id,
+        agent.name,
+        agent.file_search_store_id
       )
 
-      if (!uploadResponse.ok) {
-        const errorText = await uploadResponse.text()
-        console.error('[knowledge] Gemini upload error:', errorText)
-        // Continue without file upload - save locally only
-      } else {
-        const uploadResult = await uploadResponse.json()
-        fileUri = uploadResult.file?.uri
-        fileId = uploadResult.file?.name
+      // Update agent with store ID if it changed
+      if (fileSearchStoreName !== agent.file_search_store_id) {
+        await supabase
+          .from('ai_agents')
+          .update({ file_search_store_id: fileSearchStoreName })
+          .eq('id', agent_id)
+
+        console.log(`[knowledge] Updated agent ${agent_id} with store ${fileSearchStoreName}`)
       }
-    } catch (uploadError) {
-      console.error('[knowledge] File upload error:', uploadError)
-      // Continue without external file - save locally only
+    } catch (storeError) {
+      console.error('[knowledge] Failed to ensure File Search Store:', storeError)
+      // Continue with local-only storage if store creation fails
+      fileSearchStoreName = null
     }
+
+    // Upload file to File Search Store (for RAG semantic search)
+    let fileSearchFileName: string | null = null
+    let indexingStatus: 'completed' | 'processing' | 'failed' | 'local_only' = 'local_only'
+
+    if (fileSearchStoreName) {
+      try {
+        console.log(`[knowledge] Uploading ${name} to File Search Store ${fileSearchStoreName}`)
+
+        const operation = await uploadToFileSearchStore(
+          apiKey,
+          fileSearchStoreName,
+          content,
+          name,
+          mime_type
+        )
+
+        console.log(`[knowledge] Upload operation started: ${operation.name}`)
+
+        // Wait for the upload/indexing to complete
+        if (!operation.done && operation.name) {
+          const completedOp = await waitForOperation(apiKey, operation.name, 30, 2000)
+          console.log(`[knowledge] File indexed successfully`)
+          indexingStatus = 'completed'
+
+          // Extract the file name from the operation metadata if available
+          // Format: fileSearchStores/{storeId}/files/{fileId}
+          if (completedOp.metadata && typeof completedOp.metadata === 'object') {
+            fileSearchFileName = (completedOp.metadata as { name?: string }).name || null
+          }
+        } else if (operation.done) {
+          indexingStatus = 'completed'
+        }
+      } catch (uploadError) {
+        console.error('[knowledge] File Search Store upload error:', uploadError)
+        indexingStatus = 'failed'
+        // Continue - we'll save locally and can retry later
+      }
+    }
+
+    // Sanitize content for PostgreSQL (remove null bytes)
+    // Note: We don't need to store full binary content anymore since
+    // File Search Store handles indexing, but we keep it for:
+    // - Fallback when store is unavailable
+    // - Display preview in UI
+    // - Text files that need local processing
+    const sanitizedContent = sanitizeContent(content)
 
     // Save file metadata to database
     const { data: file, error } = await supabase
@@ -160,11 +225,11 @@ export async function POST(request: NextRequest) {
         agent_id,
         name,
         mime_type,
-        size_bytes: new TextEncoder().encode(content).length,
-        content,
-        external_file_id: fileId,
-        external_file_uri: fileUri,
-        indexing_status: fileUri ? 'processing' : 'local_only',
+        size_bytes: new TextEncoder().encode(sanitizedContent).length,
+        content: sanitizedContent,
+        external_file_id: fileSearchFileName, // Now stores the File Search file name
+        external_file_uri: fileSearchStoreName, // Store the store name for reference
+        indexing_status: indexingStatus,
       })
       .select()
       .single()
@@ -177,7 +242,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    return NextResponse.json({ file }, { status: 201 })
+    return NextResponse.json({
+      file,
+      file_search_store: fileSearchStoreName,
+      indexing_status: indexingStatus,
+    }, { status: 201 })
   } catch (error) {
     console.error('[knowledge] POST Error:', error)
     return NextResponse.json(
@@ -190,7 +259,7 @@ export async function POST(request: NextRequest) {
 // DELETE - Remove a knowledge base file
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const supabase = getClient()
     const { searchParams } = new URL(request.url)
     const fileId = searchParams.get('id')
 
@@ -215,24 +284,25 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    // Try to delete from Gemini if external file exists
+    // Try to delete from File Search Store if external file exists
     if (file.external_file_id) {
       try {
-        const { data: settings } = await supabase
+        const { data: geminiSetting } = await supabase
           .from('settings')
-          .select('gemini_api_key')
-          .single()
+          .select('value')
+          .eq('key', 'gemini_api_key')
+          .maybeSingle()
 
-        const apiKey = settings?.gemini_api_key || process.env.GEMINI_API_KEY
+        const apiKey = geminiSetting?.value || process.env.GEMINI_API_KEY
 
         if (apiKey) {
-          await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/${file.external_file_id}?key=${apiKey}`,
-            { method: 'DELETE' }
-          )
+          // external_file_id now contains the File Search file name
+          // Format: fileSearchStores/{storeId}/files/{fileId}
+          await deleteFileFromStore(apiKey, file.external_file_id)
+          console.log(`[knowledge] Deleted file from File Search Store: ${file.external_file_id}`)
         }
       } catch (deleteError) {
-        console.error('[knowledge] Error deleting external file:', deleteError)
+        console.error('[knowledge] Error deleting from File Search Store:', deleteError)
         // Continue with local deletion even if external fails
       }
     }

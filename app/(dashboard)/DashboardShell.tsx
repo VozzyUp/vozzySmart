@@ -74,7 +74,7 @@ const OnboardingOverlay = ({
                     : 'pending',
             icon: React.createElement(Database, { size: 20, className: 'text-emerald-400' }),
             actionLabel: 'Abrir Assistente de Configuração',
-            actionUrl: '/setup',
+            actionUrl: '/install/start',
             errorMessage: health?.services.database?.message,
             isRequired: true,
             instructions: [
@@ -95,7 +95,7 @@ const OnboardingOverlay = ({
                     : 'pending',
             icon: React.createElement(Zap, { size: 20, className: 'text-purple-400' }),
             actionLabel: 'Configurar no Assistente',
-            actionUrl: '/setup',
+            actionUrl: '/install/start',
             errorMessage: health?.services.qstash.message,
             isRequired: true,
             instructions: [
@@ -117,7 +117,7 @@ const OnboardingOverlay = ({
             errorMessage: health?.services.whatsapp.message,
             isRequired: true,
             actionLabel: 'Configurar WhatsApp',
-            actionUrl: '/setup',
+            actionUrl: '/install/start',
             instructions: [
                 'Configure as credenciais do WhatsApp Business.',
                 'Use o assistente para validar o token.',
@@ -147,11 +147,11 @@ const OnboardingOverlay = ({
                         Para utilizar o sistema, precisamos configurar os serviços essenciais. Utilize nosso assistente para facilitar o processo.
                     </p>
                     <a
-                        href="/setup"
+                        href="/install/start"
                         className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-500 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-primary-500/25"
                     >
                         <Sparkles size={18} />
-                        Iniciar Assistente de Configuração
+                        Iniciar Assistente de Instalação
                     </a>
                 </div>
 
