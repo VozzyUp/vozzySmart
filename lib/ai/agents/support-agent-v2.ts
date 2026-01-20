@@ -183,12 +183,14 @@ export async function processSupportAgentV2(
       // WITH KNOWLEDGE BASE: Use file_search (returns plain text)
       // =======================================================================
       console.log(`[support-agent] Using File Search with store: ${agent.file_search_store_id}`)
-      console.log(`[support-agent] Calling Gemini API...`)
+      console.log(`[support-agent] Calling Gemini API with prompt: "${inputText.slice(0, 50)}..."`)
 
+      // File Search funciona melhor com prompt único (mesmo padrão do teste)
+      // O histórico da conversa é incluído no system prompt se necessário
       const result = await generateText({
         model,
         system: agent.system_prompt,
-        messages: aiMessages,
+        prompt: inputText, // Usar prompt único ao invés de messages array
         tools: {
           file_search: google.tools.fileSearch({
             fileSearchStoreNames: [agent.file_search_store_id],

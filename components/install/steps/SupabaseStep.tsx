@@ -130,16 +130,18 @@ export function SupabaseStep({ onComplete }: SupabaseStepProps) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             accessToken,
-            organizationId: targetOrg.id,
+            organizationSlug: targetOrg.slug, // Igual ao CRM: usa slug, não id
             name: projectName,
             dbPass,
-            region: 'us-east-1',
+            regionSmartGroup: 'americas', // Igual ao CRM: usa region smart group
           }),
         });
 
         if (createRes.ok) {
-          const { project } = await createRes.json();
-          createdProject = { id: project.id, url: project.url };
+          const data = await createRes.json();
+          const project = data.project;
+          // Igual ao CRM: usa ref (não id)
+          createdProject = { id: project.ref || project.id, url: project.url };
         } else if (createRes.status === 409) {
           // Nome já existe, tentar outro
           attempt++;

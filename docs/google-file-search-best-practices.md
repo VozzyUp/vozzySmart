@@ -40,17 +40,19 @@ O File Search é uma "provider-defined tool" do Google que tem comportamento esp
 
 ```typescript
 // COM knowledge base - File Search injeta contexto automaticamente
+// ⚠️ IMPORTANTE: Usar 'prompt' (string) ao invés de 'messages' (array) para evitar timeout!
 if (hasKnowledgeBase && agent.file_search_store_id) {
   const result = await generateText({
     model,
     system: agent.system_prompt,
-    messages: aiMessages,
+    prompt: userMessage, // String única - NÃO usar messages array!
     tools: {
       file_search: google.tools.fileSearch({
         fileSearchStoreNames: [agent.file_search_store_id],
         topK: 5,
       }),
     },
+    abortSignal: AbortSignal.timeout(30000), // 30s timeout recomendado
     // toolChoice: 'auto' (default) - modelo decide quando usar
   })
 
@@ -69,7 +71,7 @@ else {
   await generateText({
     model,
     system: agent.system_prompt,
-    messages: aiMessages,
+    messages: aiMessages, // Aqui pode usar messages array (sem File Search)
     tools: { respond: respondTool },
     toolChoice: 'required', // Força uso da tool
   })
@@ -174,6 +176,27 @@ toolChoice: 'required'
 // ✅ CORRETO - deixar o modelo decidir
 toolChoice: 'auto' // ou omitir (default)
 ```
+
+### 4. Usar `messages` array com File Search (TIMEOUT!)
+```typescript
+// ❌ ERRADO - pode causar timeout de 30s+
+const result = await generateText({
+  model,
+  system: systemPrompt,
+  messages: aiMessages,  // Array de mensagens causa problemas!
+  tools: { file_search: google.tools.fileSearch(...) },
+})
+
+// ✅ CORRETO - usar prompt único
+const result = await generateText({
+  model,
+  system: systemPrompt,
+  prompt: userMessage,  // String única funciona corretamente
+  tools: { file_search: google.tools.fileSearch(...) },
+})
+```
+
+> ⚠️ **Descoberto em Jan 2026**: O File Search tem problemas de performance/timeout quando usado com array de mensagens (`messages`). Sempre usar `prompt` (string única) para evitar timeouts.
 
 ## System Prompt
 

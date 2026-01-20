@@ -3,20 +3,20 @@ import { z } from 'zod';
 
 const RequestSchema = z.object({
   accessToken: z.string().min(1, 'Access token é obrigatório'),
-  organizationId: z.string().min(1, 'Organization ID é obrigatório'),
-  name: z.string().min(1, 'Nome do projeto é obrigatório'),
-  dbPass: z.string().min(8, 'Senha do banco deve ter no mínimo 8 caracteres'),
-  region: z.string().default('us-east-1'),
+  // IMPORTANTE: A API do Supabase usa organization_slug, não organization_id
+  organizationSlug: z.string().min(1, 'Organization slug é obrigatório'),
+  name: z.string().min(2, 'Nome do projeto é obrigatório').max(64),
+  dbPass: z.string().min(12, 'Senha do banco deve ter no mínimo 12 caracteres'),
+  regionSmartGroup: z.enum(['americas', 'emea', 'apac']).default('americas'),
 });
 
 /**
  * Cria um novo projeto Supabase.
  *
- * POST /api/installer/supabase/create-project
- * Body: { accessToken, organizationId, name, dbPass, region }
+ * Igual ao CRM: usa organization_slug (não organization_id).
  *
- * Retorna os dados do projeto criado (id serve como projectRef).
- * Status 409 indica que o nome já existe (tentar outro nome).
+ * POST /api/installer/supabase/create-project
+ * Body: { accessToken, organizationSlug, name, dbPass, regionSmartGroup }
  */
 export async function POST(request: NextRequest) {
   if (process.env.INSTALLER_ENABLED === 'false') {
@@ -34,9 +34,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { accessToken, organizationId, name, dbPass, region } = parsed.data;
+    const { accessToken, organizationSlug, name, dbPass, regionSmartGroup } = parsed.data;
 
     // Criar projeto via Supabase Management API
+    // Igual ao CRM: usa organization_slug e region_selection
     const createRes = await fetch('https://api.supabase.com/v1/projects', {
       method: 'POST',
       headers: {
@@ -44,19 +45,24 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        organization_id: organizationId,
+        organization_slug: organizationSlug, // <-- CORRETO: slug, não id
         name,
         db_pass: dbPass,
-        region,
-        plan: 'free', // Sempre começa como free
+        region_selection: {
+          type: 'smartGroup',
+          code: regionSmartGroup,
+        },
       }),
     });
 
     if (!createRes.ok) {
       const errorData = await createRes.json().catch(() => ({}));
+      const errorMsg = String(errorData.message || '').toLowerCase();
+
+      console.log('[create-project] Erro da API:', { status: createRes.status, errorMsg, errorData });
 
       // Nome já existe
-      if (createRes.status === 409 || errorData.message?.includes('already exists')) {
+      if (createRes.status === 409 || errorMsg.includes('already exists')) {
         return NextResponse.json(
           { error: 'Nome de projeto já existe', code: 'NAME_EXISTS' },
           { status: 409 }
@@ -64,9 +70,17 @@ export async function POST(request: NextRequest) {
       }
 
       // Limite de projetos atingido
-      if (errorData.message?.includes('limit') || errorData.message?.includes('quota')) {
+      if (
+        errorMsg.includes('limit') ||
+        errorMsg.includes('quota') ||
+        errorMsg.includes('maximum') ||
+        errorMsg.includes('2 project')
+      ) {
         return NextResponse.json(
-          { error: 'Limite de projetos free atingido. Pause um projeto ou use outra organização.', code: 'LIMIT_REACHED' },
+          {
+            error: 'Limite de projetos free atingido. Pause um projeto existente ou use uma organização paga.',
+            code: 'LIMIT_REACHED',
+          },
           { status: 403 }
         );
       }
@@ -87,15 +101,16 @@ export async function POST(request: NextRequest) {
     const project = await createRes.json();
 
     return NextResponse.json({
-      success: true,
+      ok: true,
       project: {
-        id: project.id,           // Este é o projectRef
+        id: project.id,             // Este é o projectRef
+        ref: project.ref || project.id,
         name: project.name,
         region: project.region,
         status: project.status,
         organizationId: project.organization_id,
         // URL base do projeto
-        url: `https://${project.id}.supabase.co`,
+        url: `https://${project.ref || project.id}.supabase.co`,
       },
     });
   } catch (error) {

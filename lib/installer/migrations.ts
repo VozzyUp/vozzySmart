@@ -40,6 +40,33 @@ function isRetryableConnectError(err: unknown): boolean {
 }
 
 /**
+ * Aguarda storage.buckets existir (igual CRM).
+ * O Supabase demora alguns segundos para habilitar storage após criar o projeto.
+ */
+async function waitForStorageReady(client: Client, opts?: { timeoutMs?: number; pollMs?: number }) {
+  const timeoutMs = typeof opts?.timeoutMs === 'number' ? opts.timeoutMs : 210_000;
+  const pollMs = typeof opts?.pollMs === 'number' ? opts?.pollMs : 4_000;
+  const t0 = Date.now();
+
+  while (Date.now() - t0 < timeoutMs) {
+    try {
+      const r = await client.query<{ ready: boolean }>(
+        `select (to_regclass('storage.buckets') is not null) as ready`
+      );
+      const ready = Boolean(r?.rows?.[0]?.ready);
+      if (ready) return;
+    } catch {
+      // keep polling on transient errors
+    }
+    await sleep(pollMs);
+  }
+
+  throw new Error(
+    'Supabase Storage ainda não está pronto (storage.buckets não existe). Aguarde o projeto terminar de provisionar e tente novamente.'
+  );
+}
+
+/**
  * Conecta com retry/backoff, recriando o Client a cada tentativa.
  * Isso evita o erro: "Client has already been connected. You cannot reuse a client."
  */
@@ -138,11 +165,11 @@ export async function runSchemaMigration(dbUrl: string) {
   console.log('[migrations] Conexão estabelecida com sucesso!');
 
   try {
-    // Aguarda o banco estar 100% pronto (igual ao CRM que espera storage.buckets)
-    // Verifica se consegue fazer uma query simples
-    console.log('[migrations] Verificando se banco está pronto...');
-    await client.query('SELECT 1');
-    console.log('[migrations] Banco pronto, iniciando migrations...');
+    // Aguarda storage.buckets existir (igual ao CRM)
+    // O Supabase demora alguns segundos para habilitar storage após criar o projeto
+    console.log('[migrations] Aguardando storage ficar pronto...');
+    await waitForStorageReady(client);
+    console.log('[migrations] Storage pronto, iniciando migrations...');
 
     // Executa todos os arquivos de migration em ordem.
     for (const file of migrationFiles) {
