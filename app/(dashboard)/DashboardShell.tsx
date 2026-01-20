@@ -148,7 +148,7 @@ const OnboardingOverlay = ({
                     </p>
                     <a
                         href="/install/start"
-                        className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-500 text-[var(--ds-text-primary)] px-6 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-primary-500/25"
+                        className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-500 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-primary-500/25"
                     >
                         <Sparkles size={18} />
                         Iniciar Assistente de Instalação
@@ -227,11 +227,11 @@ const OnboardingOverlay = ({
                                 >
                                     {/* Step number badge */}
                                     <div className={`absolute top-4 left-4 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${isConfigured
-                                        ? 'bg-emerald-500 text-[var(--ds-text-primary)]'
+                                        ? 'bg-emerald-500 text-white'
                                         : isError
-                                            ? 'bg-red-500 text-[var(--ds-text-primary)]'
+                                            ? 'bg-red-500 text-white'
                                             : isNextStep
-                                                ? 'bg-primary-500 text-[var(--ds-text-primary)]'
+                                                ? 'bg-primary-500 text-white'
                                                 : 'bg-[var(--ds-bg-surface)] text-[var(--ds-text-secondary)]'
                                         }`}>
                                         {isConfigured ? <CheckCircle2 size={16} /> : index + 1}
@@ -299,7 +299,7 @@ const OnboardingOverlay = ({
                                                         href={step.actionUrl}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium text-sm bg-primary-500 hover:bg-primary-400 text-[var(--ds-text-primary)] transition-all"
+                                                        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium text-sm bg-primary-500 hover:bg-primary-400 text-white transition-all"
                                                     >
                                                         {step.actionLabel}
                                                         <ExternalLink size={14} />
