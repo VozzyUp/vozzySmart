@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, ReactNode } from 'react';
+import Script from 'next/script';
 import { TelegramSDKProvider, useTelegramSDK } from '@/components/telegram/TelegramSDKProvider';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -63,12 +64,47 @@ function TelegramLayoutInner({ children }: { children: ReactNode }) {
 
 export default function TelegramLayout({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false);
+  const [sdkReady, setSdkReady] = useState(false);
 
-  // Evitar hydration mismatch
+  // Evitar hydration mismatch e aguardar script do Telegram
   useEffect(() => {
     setMounted(true);
 
-    // Carregar Eruda em dev para debug
+    // Função para verificar se o SDK está disponível
+    const checkTelegramSDK = () => {
+      if (typeof window !== 'undefined') {
+        // Se window.Telegram existe, o script carregou
+        if (window.Telegram?.WebApp) {
+          console.log('📱 Telegram WebApp SDK detected');
+          setSdkReady(true);
+          return true;
+        }
+      }
+      return false;
+    };
+
+    // Verificar imediatamente
+    if (checkTelegramSDK()) return;
+
+    // Polling para verificar quando o script carregar (max 3 segundos)
+    let attempts = 0;
+    const maxAttempts = 30; // 30 * 100ms = 3 segundos
+    const interval = setInterval(() => {
+      attempts++;
+      if (checkTelegramSDK() || attempts >= maxAttempts) {
+        clearInterval(interval);
+        if (attempts >= maxAttempts) {
+          console.log('⚠️ Telegram SDK not found, using mock mode');
+          setSdkReady(true); // Continua em mock mode
+        }
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Carregar Eruda em dev para debug
+  useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       import('eruda').then((eruda) => {
         eruda.default.init();
@@ -79,17 +115,34 @@ export default function TelegramLayout({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  if (!mounted) {
+  if (!mounted || !sdkReady) {
     return (
-      <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
-      </div>
+      <>
+        {/* Script oficial do Telegram - carrega no head */}
+        <Script
+          src="https://telegram.org/js/telegram-web-app.js"
+          strategy="beforeInteractive"
+        />
+        <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-zinc-400 text-sm">Conectando ao Telegram...</p>
+          </div>
+        </div>
+      </>
     );
   }
 
   return (
-    <TelegramSDKProvider>
-      <TelegramLayoutInner>{children}</TelegramLayoutInner>
-    </TelegramSDKProvider>
+    <>
+      {/* Script oficial do Telegram - mantém aqui também para garantir */}
+      <Script
+        src="https://telegram.org/js/telegram-web-app.js"
+        strategy="beforeInteractive"
+      />
+      <TelegramSDKProvider>
+        <TelegramLayoutInner>{children}</TelegramLayoutInner>
+      </TelegramSDKProvider>
+    </>
   );
 }

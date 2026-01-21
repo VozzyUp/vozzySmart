@@ -135,6 +135,14 @@ export function AIAgentForm({
   const [availableLLMProviders, setAvailableLLMProviders] = useState<LLMProviderAvailability[]>([])
   const [llmProvidersLoading, setLLMProvidersLoading] = useState(false)
 
+  // Booking tool prerequisites
+  interface BookingPrerequisites {
+    ready: boolean
+    missing: string[]
+  }
+  const [bookingPrereqs, setBookingPrereqs] = useState<BookingPrerequisites>({ ready: false, missing: [] })
+  const [bookingPrereqsLoading, setBookingPrereqsLoading] = useState(false)
+
   // Fetch available embedding providers
   const fetchAvailableEmbeddingProviders = useCallback(async () => {
     setEmbeddingProvidersLoading(true)
@@ -167,13 +175,34 @@ export function AIAgentForm({
     }
   }, [])
 
-  // Fetch providers when sheet opens
+  // Fetch booking tool prerequisites
+  const fetchBookingPrerequisites = useCallback(async () => {
+    setBookingPrereqsLoading(true)
+    try {
+      const res = await fetch('/api/settings/booking')
+      if (res.ok) {
+        const data = await res.json()
+        setBookingPrereqs({
+          ready: data.prerequisites?.ready ?? false,
+          missing: data.prerequisites?.missing ?? [],
+        })
+      }
+    } catch (error) {
+      console.error('Failed to fetch booking prerequisites:', error)
+      setBookingPrereqs({ ready: false, missing: ['Erro ao verificar pré-requisitos'] })
+    } finally {
+      setBookingPrereqsLoading(false)
+    }
+  }, [])
+
+  // Fetch providers and prerequisites when sheet opens
   useEffect(() => {
     if (open) {
       fetchAvailableEmbeddingProviders()
       fetchAvailableLLMProviders()
+      fetchBookingPrerequisites()
     }
-  }, [open, fetchAvailableEmbeddingProviders, fetchAvailableLLMProviders])
+  }, [open, fetchAvailableEmbeddingProviders, fetchAvailableLLMProviders, fetchBookingPrerequisites])
 
   // Reset form when agent changes
   useEffect(() => {
@@ -786,20 +815,34 @@ export function AIAgentForm({
               </div>
 
               <div className="flex items-center justify-between border-t border-[var(--ds-border-default)] pt-3">
-                <div>
+                <div className="flex-1">
                   <Label htmlFor="bookingToolEnabled" className="text-sm">
                     Tool de Agendamento
                   </Label>
-                  <p className="text-xs text-[var(--ds-text-muted)]">
-                    {bookingToolEnabled
-                      ? 'Agente envia formulário de agendamento'
-                      : 'Agente não tem acesso ao calendário'}
-                  </p>
+                  {bookingPrereqsLoading ? (
+                    <p className="text-xs text-[var(--ds-text-muted)]">Verificando...</p>
+                  ) : bookingPrereqs.ready ? (
+                    <p className="text-xs text-[var(--ds-text-muted)]">
+                      {bookingToolEnabled
+                        ? 'Agente envia formulário de agendamento'
+                        : 'Agente não tem acesso ao calendário'}
+                    </p>
+                  ) : (
+                    <div className="mt-1 space-y-1">
+                      <p className="text-xs text-amber-400">Configure primeiro:</p>
+                      <ul className="list-inside list-disc text-[10px] text-[var(--ds-text-muted)]">
+                        {bookingPrereqs.missing.map((item, i) => (
+                          <li key={i}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
                 <Switch
                   id="bookingToolEnabled"
                   checked={bookingToolEnabled}
                   onCheckedChange={setBookingToolEnabled}
+                  disabled={!bookingPrereqs.ready || bookingPrereqsLoading}
                 />
               </div>
             </div>
