@@ -648,6 +648,12 @@ export function buildMetaTemplatePayload(input: {
       }
 
       if (subType === 'url') {
+        // Botões de URL estáticos (sem {{1}} na URL) não devem ter componente no payload
+        // A Meta retorna erro 132018 se enviarmos componente para botão estático
+        const isDynamic = buttonUrlHasAnyPlaceholder(entry.button.url)
+        if (!isDynamic) {
+          continue // Skip - botão estático não precisa de componente
+        }
         if (params.length) {
           component.parameters = params.map((p) => ({ type: 'text', text: p.text }))
         }
