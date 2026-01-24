@@ -1425,10 +1425,40 @@ export default function CampaignsNewRealPage() {
           required: true,
         }))
 
-      setTemplateVars({
+      const initialVars = {
         header: mapKeys(spec.header?.requiredKeys || []),
         body: mapKeys(spec.body.requiredKeys || []),
-      })
+      }
+
+      setTemplateVars(initialVars)
+
+      // BYPASS: Busca marketing_variables para pré-preencher
+      // Se o template veio de um projeto BYPASS, os valores promocionais ficam em marketing_variables
+      const fetchMarketingVars = async () => {
+        try {
+          const response = await fetch(`/api/templates/${encodeURIComponent(selectedTemplate.name)}/marketing-variables`)
+          if (!response.ok) return
+
+          const data = await response.json()
+          if (data.marketing_variables && data.strategy === 'bypass') {
+            // Pré-preenche com marketing_variables
+            setTemplateVars(prev => ({
+              header: prev.header.map(item => ({
+                ...item,
+                value: data.marketing_variables[item.key] || item.value
+              })),
+              body: prev.body.map(item => ({
+                ...item,
+                value: data.marketing_variables[item.key] || item.value
+              }))
+            }))
+          }
+        } catch {
+          // Silenciosamente ignora erros - marketing_variables é opcional
+        }
+      }
+
+      fetchMarketingVars()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Falha ao validar contrato do template'
       setTemplateSpecError(message)
