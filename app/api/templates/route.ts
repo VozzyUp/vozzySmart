@@ -215,14 +215,23 @@ export async function GET(request: NextRequest) {
     // Importante: aguardamos para evitar race condition com /api/campaign/precheck.
     await syncTemplatesToLocalDb(templates)
 
-    // Merge com dados locais (ex.: cache de preview de mídia).
+    // Merge com dados locais (ex.: cache de preview de mídia e header_location).
     const local = await templateDb.getAll().catch(() => [])
     const localByName = new Map(local.map((t) => [t.name, t]))
     const merged = templates.map((t) => {
       const cached = localByName.get(t.name)
       if (!cached) return t
+
+      // Se o template local tem location injetado no header, usar os components locais
+      // para garantir que o preview funcione corretamente
+      const localHasLocation = cached.components?.some(
+        (c: any) => c.type === 'HEADER' && c.format === 'LOCATION' && c.location
+      )
+
       return {
         ...t,
+        // Usar components locais se tiver location injetado
+        components: localHasLocation ? cached.components : t.components,
         headerMediaPreviewUrl: cached.headerMediaPreviewUrl ?? null,
         headerMediaPreviewExpiresAt: cached.headerMediaPreviewExpiresAt ?? null,
         headerMediaId: cached.headerMediaId ?? null,

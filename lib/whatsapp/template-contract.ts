@@ -660,6 +660,10 @@ export function buildMetaTemplatePayload(input: {
       )
     }
 
+    // Meta exige que 'address' seja preenchido. Usa 'name' como fallback se address estiver vazio.
+    const locationName = String(loc.name || '').trim()
+    const locationAddress = String(loc.address || '').trim() || locationName || 'Localização'
+
     payload.template.components.push({
       type: 'header',
       parameters: [
@@ -668,8 +672,8 @@ export function buildMetaTemplatePayload(input: {
           location: {
             latitude: loc.latitude,
             longitude: loc.longitude,
-            name: loc.name || '',
-            address: loc.address || '',
+            name: locationName || locationAddress,
+            address: locationAddress,
           },
         },
       ],
