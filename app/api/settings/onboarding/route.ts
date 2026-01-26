@@ -17,6 +17,8 @@ async function getSettingDirect(key: string): Promise<string | null> {
     .eq('key', key)
     .single()
 
+  console.log(`[onboarding] getSettingDirect('${key}'):`, { data, error: error?.message })
+  
   if (error || !data) return null
   return data.value
 }
