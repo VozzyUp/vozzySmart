@@ -172,19 +172,23 @@ export async function handleInboundMessage(
 }
 
 // =============================================================================
-// AI Processing Trigger (T047) - Via QStash com Debounce
+// AI Processing Trigger (T047) - Via QStash com Debounce Reset
 // =============================================================================
 
 /**
- * Trigger AI agent processing via QStash com debounce configurável
+ * Trigger AI agent processing via QStash com "debounce com reset"
  *
- * Usa o campo `debounce_ms` do agente para aguardar antes de processar.
- * Isso evita respostas duplicadas quando o usuário envia múltiplas mensagens rapidamente.
+ * Implementa o padrão usado por n8n, Typebot, Botpress etc:
+ * - A cada mensagem, RESETA o timer de espera
+ * - Só processa quando o usuário PARA de digitar por X segundos
  *
  * Fluxo:
- * 1. Busca agente para pegar debounce_ms configurado
- * 2. Se debounce > 0: salva timestamp no Redis e agenda QStash com delay
- * 3. Quando o job executa, verifica se foi superseded por mensagem mais recente
+ * 1. Busca agente para pegar debounce_ms configurado (default: 3s)
+ * 2. Atualiza timestamp da "última mensagem" no Redis
+ * 3. Agenda job com delay = debounce_ms
+ * 4. Quando job executa, verifica se passou debounce_ms desde última msg
+ *    - Se sim: processa (usuário parou de digitar)
+ *    - Se não: skipa (outro job mais recente vai processar)
  */
 async function triggerAIProcessing(
   conversation: InboxConversation,
@@ -204,7 +208,7 @@ async function triggerAIProcessing(
 
   // 1. Busca o agente para pegar o debounce_ms configurado
   const agent = await getAgentForTrigger(conversation.ai_agent_id)
-  const debounceMs = agent?.debounce_ms ?? 5000 // default 5s
+  const debounceMs = agent?.debounce_ms ?? 3000 // default 3s (padrão do mercado)
   const debounceSeconds = Math.ceil(debounceMs / 1000)
 
   console.log(`🔥 [TRIGGER] Agent debounce: ${debounceMs}ms (${debounceSeconds}s)`)
@@ -212,21 +216,21 @@ async function triggerAIProcessing(
   // 2. Se debounce desabilitado (0), dispara imediatamente
   if (debounceMs === 0) {
     console.log(`🔥 [TRIGGER] Debounce disabled, dispatching immediately`)
-    return await dispatchToQStash(conversationId, now, 0)
+    return await dispatchToQStash(conversationId, debounceMs, 0)
   }
 
-  // 3. Atualiza timestamp no Redis (estado compartilhado)
-  const redisKey = `ai:debounce:${conversationId}`
+  // 3. Atualiza timestamp da ÚLTIMA MENSAGEM no Redis (isso é o "reset" do timer)
+  const redisKey = `ai:lastmsg:${conversationId}`
   if (redis) {
     // Expira a chave alguns segundos após o delay para limpeza automática
-    await redis.set(redisKey, now, { ex: debounceSeconds + 10 })
-    console.log(`🔥 [TRIGGER] Redis SET ${redisKey} = ${now}`)
+    await redis.set(redisKey, now, { ex: debounceSeconds + 30 })
+    console.log(`🔥 [TRIGGER] Redis SET ${redisKey} = ${now} (última mensagem)`)
   } else {
     console.log(`⚠️ [TRIGGER] Redis not configured, debounce will be best-effort`)
   }
 
-  // 4. Dispara QStash com delay configurado
-  return await dispatchToQStash(conversationId, now, debounceSeconds)
+  // 4. Agenda job com delay - quando executar, vai verificar se passou tempo suficiente
+  return await dispatchToQStash(conversationId, debounceMs, debounceSeconds)
 }
 
 /**
@@ -234,7 +238,7 @@ async function triggerAIProcessing(
  */
 async function dispatchToQStash(
   conversationId: string,
-  dispatchedAt: number,
+  debounceMs: number,
   delaySeconds: number
 ): Promise<boolean> {
   const qstash = getQStashClient()
@@ -273,13 +277,13 @@ async function dispatchToQStash(
 
     await qstash.publishJSON({
       url: aiRespondUrl,
-      body: { conversationId, dispatchedAt },
+      body: { conversationId, debounceMs },
       delay: delaySeconds > 0 ? delaySeconds : undefined,
       retries: 2,
       headers,
     })
 
-    console.log(`✅ [TRIGGER] AI scheduled: debounce=${delaySeconds}s, ts=${dispatchedAt}`)
+    console.log(`✅ [TRIGGER] AI scheduled: delay=${delaySeconds}s, debounceMs=${debounceMs}`)
     return true
   } catch (error) {
     console.error('❌ [TRIGGER] Failed to dispatch AI processing:', error)

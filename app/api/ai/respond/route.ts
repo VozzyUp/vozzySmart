@@ -31,8 +31,8 @@ export const dynamic = 'force-dynamic'
 
 interface AIRespondRequest {
   conversationId: string
-  /** Timestamp de quando o job foi disparado (para verificação de debounce) */
-  dispatchedAt?: number
+  /** Tempo de debounce configurado no agente (para verificação de "parou de digitar") */
+  debounceMs?: number
 }
 
 // =============================================================================
@@ -48,28 +48,37 @@ export async function POST(req: NextRequest) {
   try {
     // 1. Parse request
     const body = (await req.json()) as AIRespondRequest
-    const { conversationId, dispatchedAt } = body
+    const { conversationId, debounceMs } = body
 
     if (!conversationId) {
       console.log(`❌ [AI-RESPOND] Missing conversationId`)
       return NextResponse.json({ error: 'Missing conversationId' }, { status: 400 })
     }
 
-    console.log(`🤖 [AI-RESPOND] Processing conversation: ${conversationId}, dispatchedAt: ${dispatchedAt}`)
+    console.log(`🤖 [AI-RESPOND] Processing conversation: ${conversationId}, debounceMs: ${debounceMs}`)
 
-    // 1.5. Verificação de debounce - se este job foi superseded por um mais recente
-    if (dispatchedAt && redis) {
-      const redisKey = `ai:debounce:${conversationId}`
-      const lastDispatchTs = await redis.get<number>(redisKey)
+    // 1.5. Verificação de debounce - usuário parou de digitar?
+    // Verifica se passou tempo suficiente desde a ÚLTIMA MENSAGEM
+    if (debounceMs && debounceMs > 0 && redis) {
+      const redisKey = `ai:lastmsg:${conversationId}`
+      const lastMsgTimestamp = await redis.get<number>(redisKey)
 
-      if (lastDispatchTs && lastDispatchTs > dispatchedAt) {
-        console.log(`⏭️ [AI-RESPOND] Skipping - superseded by newer dispatch (${dispatchedAt} < ${lastDispatchTs})`)
-        return NextResponse.json({ skipped: true, reason: 'superseded' })
+      if (lastMsgTimestamp) {
+        const now = Date.now()
+        const timeSinceLastMsg = now - lastMsgTimestamp
+
+        // Se não passou tempo suficiente, usuário ainda está digitando
+        // Outro job (mais recente) vai processar
+        if (timeSinceLastMsg < debounceMs) {
+          console.log(`⏭️ [AI-RESPOND] Skipping - user still typing (${timeSinceLastMsg}ms < ${debounceMs}ms)`)
+          return NextResponse.json({ skipped: true, reason: 'user-still-typing' })
+        }
+
+        // Passou tempo suficiente - usuário parou de digitar
+        // Limpa a chave e processa
+        await redis.del(redisKey)
+        console.log(`🤖 [AI-RESPOND] User stopped typing (${timeSinceLastMsg}ms >= ${debounceMs}ms) - processing`)
       }
-
-      // Este job vai processar - limpa a chave para evitar re-processamento
-      await redis.del(redisKey)
-      console.log(`🤖 [AI-RESPOND] Debounce verified - this job will process`)
     }
 
     // 2. Busca conversa
