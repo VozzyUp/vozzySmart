@@ -739,6 +739,15 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Dispatch] Pré-check: ${validContacts.length} válidos, ${skippedContacts.length} ignorados (skipped)`)
 
+    // Atualiza estatísticas do planner após bulk upsert (best-effort).
+    // Sem isso, queries subsequentes (contagens, filtros) podem usar planos ruins
+    // porque o planner ainda vê as estatísticas pré-upsert.
+    try {
+      await supabase.rpc('analyze_table', { table_name: 'campaign_contacts' })
+    } catch {
+      // best-effort: não bloqueia o disparo se a function não existir (compat)
+    }
+
     // Reconciliar contadores da campanha com o que foi efetivamente persistido.
     // Motivo: contatos "skipped" no pré-check não passam pelo workflow, então
     // `campaigns.skipped` pode ficar 0 mesmo com linhas skipped em `campaign_contacts`.

@@ -168,24 +168,27 @@ export default function TemplatesPage() {
     }
   }
 
-  // Deep-link: /templates?tab=flows
+  // Deep-link: /templates?tab=flows (roda apenas na montagem inicial)
+  const initialTabApplied = React.useRef(false)
   React.useEffect(() => {
+    if (initialTabApplied.current) return
+    initialTabApplied.current = true
+
     const tab = (searchParams?.get('tab') || '').toLowerCase()
     if (tab === 'drafts') {
-      // Compat: aba antiga virou filtro no tab principal.
       setActiveTab('meta')
       controller.setStatusFilter('DRAFT')
       router.replace('/templates?tab=meta')
       return
     }
     if (tab === 'meta' || tab === 'projects' || tab === 'flows' || tab === 'forms') {
-      setActiveTab((prev) => ((prev as any) === tab ? prev : (tab as any)))
+      setActiveTab(tab)
     }
   }, [controller, router, searchParams])
 
   const setTab = (tab: 'projects' | 'meta' | 'flows' | 'forms') => {
     setActiveTab(tab)
-    router.replace(`/templates?tab=${encodeURIComponent(tab)}`)
+    window.history.replaceState(null, '', `/templates?tab=${encodeURIComponent(tab)}`)
   }
 
   const handleDeleteProject = (e: React.MouseEvent, project: { id: string; title: string; approved_count: number }) => {

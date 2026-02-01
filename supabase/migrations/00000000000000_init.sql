@@ -6,8 +6,8 @@
 -- Contém: 38 tabelas, 16 funções, 102 indexes, 9 triggers, 29 FKs
 -- =============================================================================
 
--- Extensão necessária para embeddings de IA
-CREATE EXTENSION IF NOT EXISTS vector;
+-- Extensão necessária para embeddings de IA (schema extensions = best practice Supabase)
+CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;
 CREATE FUNCTION public.get_campaign_contact_stats(p_campaign_id text) RETURNS json
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
@@ -124,7 +124,7 @@ BEGIN
 END;
 $_$;
 
-CREATE FUNCTION public.search_embeddings(query_embedding public.vector, match_threshold double precision DEFAULT 0.7, match_count integer DEFAULT 5, p_agent_id uuid DEFAULT NULL::uuid) RETURNS TABLE(id uuid, content text, metadata jsonb, similarity double precision)
+CREATE FUNCTION public.search_embeddings(query_embedding extensions.vector, match_threshold double precision DEFAULT 0.7, match_count integer DEFAULT 5, p_agent_id uuid DEFAULT NULL::uuid) RETURNS TABLE(id uuid, content text, metadata jsonb, similarity double precision)
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO ''
     AS $$
@@ -144,7 +144,7 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION public.search_embeddings(query_embedding public.vector, agent_id_filter uuid, expected_dimensions integer, match_threshold double precision DEFAULT 0.5, match_count integer DEFAULT 5) RETURNS TABLE(id uuid, content text, similarity double precision, metadata jsonb)
+CREATE FUNCTION public.search_embeddings(query_embedding extensions.vector, agent_id_filter uuid, expected_dimensions integer, match_threshold double precision DEFAULT 0.5, match_count integer DEFAULT 5) RETURNS TABLE(id uuid, content text, similarity double precision, metadata jsonb)
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
@@ -291,7 +291,7 @@ CREATE TABLE public.ai_embeddings (
     agent_id uuid NOT NULL,
     file_id uuid,
     content text NOT NULL,
-    embedding public.vector(768) NOT NULL,
+    embedding extensions.vector(768) NOT NULL,
     dimensions integer NOT NULL,
     metadata jsonb DEFAULT '{}'::jsonb,
     created_at timestamp with time zone DEFAULT now()
@@ -739,7 +739,7 @@ BEGIN
     ELSE p_content
   END;
 
-  -- 1. Busca conversa existente pelo telefone (usa índice idx_inbox_conversations_phone)
+  -- 1. Busca conversa existente pelo telefone (usa idx_inbox_conversations_phone_covering)
   SELECT
     id, status, mode, ai_agent_id, human_mode_expires_at, automation_paused_until
   INTO
@@ -1289,9 +1289,9 @@ ALTER TABLE ONLY public.workflows
 
 CREATE INDEX ai_embeddings_agent_dimensions_idx ON public.ai_embeddings USING btree (agent_id, dimensions);
 
-CREATE INDEX ai_embeddings_agent_id_idx ON public.ai_embeddings USING btree (agent_id);
+-- ai_embeddings_agent_id_idx removido: redundante com ai_embeddings_agent_dimensions_idx(agent_id, dimensions)
 
-CREATE INDEX ai_embeddings_embedding_idx ON public.ai_embeddings USING hnsw (embedding public.vector_cosine_ops);
+CREATE INDEX ai_embeddings_embedding_idx ON public.ai_embeddings USING hnsw (embedding extensions.vector_cosine_ops);
 
 CREATE INDEX ai_embeddings_file_id_idx ON public.ai_embeddings USING btree (file_id);
 
@@ -1317,7 +1317,7 @@ CREATE INDEX campaigns_first_dispatch_at_idx ON public.campaigns USING btree (fi
 
 CREATE INDEX campaigns_last_sent_at_idx ON public.campaigns USING btree (last_sent_at DESC);
 
-CREATE INDEX idx_account_alerts_dismissed ON public.account_alerts USING btree (dismissed);
+-- idx_account_alerts_dismissed removido: redundante com idx_account_alerts_dismissed_created(dismissed, created_at)
 
 CREATE INDEX idx_account_alerts_dismissed_created ON public.account_alerts USING btree (dismissed, created_at DESC);
 
@@ -1337,9 +1337,8 @@ CREATE INDEX idx_ai_knowledge_files_created_at ON public.ai_knowledge_files USIN
 
 CREATE INDEX idx_attendant_tokens_active ON public.attendant_tokens USING btree (is_active) WHERE (is_active = true);
 
-CREATE INDEX idx_attendant_tokens_token ON public.attendant_tokens USING btree (token);
-
-CREATE INDEX idx_campaign_contacts_campaign ON public.campaign_contacts USING btree (campaign_id);
+-- idx_attendant_tokens_token removido: redundante com attendant_tokens_token_key UNIQUE
+-- idx_campaign_contacts_campaign removido: redundante com UNIQUE(campaign_id, contact_id) e compostos
 
 CREATE INDEX idx_campaign_contacts_campaign_phone ON public.campaign_contacts USING btree (campaign_id, phone);
 
@@ -1365,7 +1364,7 @@ CREATE INDEX idx_campaign_contacts_status ON public.campaign_contacts USING btre
 
 CREATE INDEX idx_campaign_contacts_trace_id ON public.campaign_contacts USING btree (trace_id);
 
-CREATE INDEX idx_campaign_tag_assignments_campaign ON public.campaign_tag_assignments USING btree (campaign_id);
+-- idx_campaign_tag_assignments_campaign removido: redundante com PK(campaign_id, tag_id)
 
 CREATE INDEX idx_campaign_tag_assignments_tag ON public.campaign_tag_assignments USING btree (tag_id);
 
@@ -1381,11 +1380,11 @@ CREATE INDEX idx_campaigns_status ON public.campaigns USING btree (status);
 
 CREATE INDEX idx_contacts_custom_fields ON public.contacts USING gin (custom_fields);
 
-CREATE INDEX idx_contacts_phone ON public.contacts USING btree (phone);
+-- idx_contacts_phone removido: redundante com contacts_phone_key UNIQUE
 
 CREATE INDEX idx_contacts_status ON public.contacts USING btree (status);
 
-CREATE INDEX idx_custom_field_definitions_entity ON public.custom_field_definitions USING btree (entity_type);
+-- idx_custom_field_definitions_entity removido: redundante com UNIQUE(entity_type, key)
 
 CREATE INDEX idx_flow_submissions_campaign_id ON public.flow_submissions USING btree (campaign_id);
 
@@ -1419,7 +1418,7 @@ CREATE INDEX idx_inbox_conversations_last_message_at ON public.inbox_conversatio
 
 CREATE INDEX idx_inbox_conversations_mode_status ON public.inbox_conversations USING btree (mode, status);
 
-CREATE INDEX idx_inbox_conversations_phone ON public.inbox_conversations USING btree (phone);
+-- idx_inbox_conversations_phone removido: redundante com phone_status e phone_covering
 
 -- Índice composto para busca por telefone no webhook (hot path)
 CREATE INDEX idx_inbox_conversations_phone_status ON public.inbox_conversations USING btree (phone, status);
@@ -1443,7 +1442,7 @@ INCLUDE (
   last_message_at
 );
 
-CREATE INDEX idx_inbox_messages_conversation_id ON public.inbox_messages USING btree (conversation_id);
+-- idx_inbox_messages_conversation_id removido: redundante com idx_inbox_messages_conversation_created(conversation_id, created_at)
 
 CREATE INDEX idx_inbox_messages_created_at ON public.inbox_messages USING btree (created_at);
 
@@ -1472,7 +1471,7 @@ CREATE INDEX idx_template_project_items_status ON public.template_project_items 
 
 CREATE INDEX idx_template_projects_status ON public.template_projects USING btree (status);
 
-CREATE INDEX idx_templates_name ON public.templates USING btree (name);
+-- idx_templates_name removido: redundante com UNIQUE(name, language)
 
 CREATE INDEX idx_templates_status ON public.templates USING btree (status);
 
@@ -1618,23 +1617,86 @@ ALTER TABLE ONLY public.workflows
     ADD CONSTRAINT workflows_active_version_fk FOREIGN KEY (active_version_id) REFERENCES public.workflow_versions(id) ON DELETE SET NULL;
 
 -- =============================================================================
--- GRANTS para funções RPC de contadores atômicos
+-- SECURITY: Protege TODAS as funções SECURITY DEFINER
+-- =============================================================================
+-- App é single-tenant e usa service_role (bypassa RLS) em todas as API routes.
+-- REVOKE de anon/PUBLIC impede que a publishable key seja usada para chamar
+-- funções que rodam com privilégio de postgres via PostgREST /rpc/.
 -- =============================================================================
 
-GRANT EXECUTE ON FUNCTION public.increment_conversation_counters TO authenticated;
-GRANT EXECUTE ON FUNCTION public.increment_conversation_counters TO service_role;
+-- Funções de contadores/inbox
+REVOKE ALL ON FUNCTION public.increment_conversation_counters(uuid, text, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.increment_conversation_counters(uuid, text, text) FROM anon;
+REVOKE ALL ON FUNCTION public.increment_conversation_counters(uuid, text, text) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.increment_conversation_counters(uuid, text, text) TO service_role;
 
-GRANT EXECUTE ON FUNCTION public.decrement_unread_count TO authenticated;
-GRANT EXECUTE ON FUNCTION public.decrement_unread_count TO service_role;
+REVOKE ALL ON FUNCTION public.decrement_unread_count(uuid, integer) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.decrement_unread_count(uuid, integer) FROM anon;
+REVOKE ALL ON FUNCTION public.decrement_unread_count(uuid, integer) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.decrement_unread_count(uuid, integer) TO service_role;
 
-GRANT EXECUTE ON FUNCTION public.reset_unread_count TO authenticated;
-GRANT EXECUTE ON FUNCTION public.reset_unread_count TO service_role;
+REVOKE ALL ON FUNCTION public.reset_unread_count(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.reset_unread_count(uuid) FROM anon;
+REVOKE ALL ON FUNCTION public.reset_unread_count(uuid) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.reset_unread_count(uuid) TO service_role;
 
-GRANT EXECUTE ON FUNCTION public.process_inbound_message TO authenticated;
-GRANT EXECUTE ON FUNCTION public.process_inbound_message TO service_role;
+REVOKE ALL ON FUNCTION public.process_inbound_message(text, text, text, text, text, jsonb, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.process_inbound_message(text, text, text, text, text, jsonb, text) FROM anon;
+REVOKE ALL ON FUNCTION public.process_inbound_message(text, text, text, text, text, jsonb, text) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.process_inbound_message(text, text, text, text, text, jsonb, text) TO service_role;
 
-GRANT EXECUTE ON FUNCTION public.get_agent_config TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_agent_config TO service_role;
+REVOKE ALL ON FUNCTION public.get_agent_config(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.get_agent_config(uuid) FROM anon;
+REVOKE ALL ON FUNCTION public.get_agent_config(uuid) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.get_agent_config(uuid) TO service_role;
+
+-- Funções de stats/dashboard
+REVOKE ALL ON FUNCTION public.get_campaign_contact_stats(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.get_campaign_contact_stats(text) FROM anon;
+REVOKE ALL ON FUNCTION public.get_campaign_contact_stats(text) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.get_campaign_contact_stats(text) TO service_role;
+
+REVOKE ALL ON FUNCTION public.get_campaigns_with_all_tags(uuid[]) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.get_campaigns_with_all_tags(uuid[]) FROM anon;
+REVOKE ALL ON FUNCTION public.get_campaigns_with_all_tags(uuid[]) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.get_campaigns_with_all_tags(uuid[]) TO service_role;
+
+REVOKE ALL ON FUNCTION public.get_contact_stats() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.get_contact_stats() FROM anon;
+REVOKE ALL ON FUNCTION public.get_contact_stats() FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.get_contact_stats() TO service_role;
+
+REVOKE ALL ON FUNCTION public.get_contact_tags() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.get_contact_tags() FROM anon;
+REVOKE ALL ON FUNCTION public.get_contact_tags() FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.get_contact_tags() TO service_role;
+
+REVOKE ALL ON FUNCTION public.get_dashboard_stats() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.get_dashboard_stats() FROM anon;
+REVOKE ALL ON FUNCTION public.get_dashboard_stats() FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.get_dashboard_stats() TO service_role;
+
+-- Funções de campaign stats
+REVOKE ALL ON FUNCTION public.increment_campaign_stat(text, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.increment_campaign_stat(text, text) FROM anon;
+REVOKE ALL ON FUNCTION public.increment_campaign_stat(text, text) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.increment_campaign_stat(text, text) TO service_role;
+
+REVOKE ALL ON FUNCTION public.increment_campaign_stat(uuid, text, integer) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.increment_campaign_stat(uuid, text, integer) FROM anon;
+REVOKE ALL ON FUNCTION public.increment_campaign_stat(uuid, text, integer) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.increment_campaign_stat(uuid, text, integer) TO service_role;
+
+-- Funções de AI/embeddings
+REVOKE ALL ON FUNCTION public.search_embeddings(extensions.vector, double precision, integer, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.search_embeddings(extensions.vector, double precision, integer, uuid) FROM anon;
+REVOKE ALL ON FUNCTION public.search_embeddings(extensions.vector, double precision, integer, uuid) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.search_embeddings(extensions.vector, double precision, integer, uuid) TO service_role;
+
+REVOKE ALL ON FUNCTION public.search_embeddings(extensions.vector, uuid, integer, double precision, integer) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.search_embeddings(extensions.vector, uuid, integer, double precision, integer) FROM anon;
+REVOKE ALL ON FUNCTION public.search_embeddings(extensions.vector, uuid, integer, double precision, integer) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.search_embeddings(extensions.vector, uuid, integer, double precision, integer) TO service_role;
 
 -- =============================================================================
 -- REALTIME
