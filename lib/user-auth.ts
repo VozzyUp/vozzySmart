@@ -372,18 +372,12 @@ export async function loginUser(password: string): Promise<UserAuthResult> {
 
   // Check if MASTER_PASSWORD is configured
   const masterPassword = process.env.MASTER_PASSWORD
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/1294d6ce-76f2-430d-96ab-3ae4d7527327',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H1',location:'lib/user-auth.ts:374',message:'MASTER_PASSWORD presence',data:{hasMasterPassword:!!masterPassword,masterLength:masterPassword?masterPassword.length:0,passwordLength:password.length},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   if (!masterPassword) {
     return { success: false, error: 'MASTER_PASSWORD não configurada nas variáveis de ambiente' }
   }
 
   // Check rate limiting
   const isLocked = await checkRateLimiting()
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/1294d6ce-76f2-430d-96ab-3ae4d7527327',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H4',location:'lib/user-auth.ts:381',message:'Rate limit status',data:{isLocked},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   if (isLocked) {
     return { success: false, error: 'Muitas tentativas. Tente novamente em 15 minutos.' }
   }
@@ -391,9 +385,6 @@ export async function loginUser(password: string): Promise<UserAuthResult> {
   try {
     // Detecta automaticamente se MASTER_PASSWORD é hash ou texto puro
     const masterIsHash = isHashFormat(masterPassword)
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/1294d6ce-76f2-430d-96ab-3ae4d7527327',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H2',location:'lib/user-auth.ts:387',message:'MASTER_PASSWORD format detection',data:{masterIsHash,masterLength:masterPassword.length},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
 
     let isValid: boolean
     if (masterIsHash) {
@@ -404,9 +395,6 @@ export async function loginUser(password: string): Promise<UserAuthResult> {
       // Novo: MASTER_PASSWORD é texto puro, compara diretamente
       isValid = password === masterPassword
     }
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/1294d6ce-76f2-430d-96ab-3ae4d7527327',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H2',location:'lib/user-auth.ts:395',message:'Password validation result',data:{masterIsHash,isValid},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
 
     if (!isValid) {
       await recordFailedAttempt()
