@@ -338,10 +338,14 @@ async function dispatchToQStash(
   if (!qstash) return false
 
   // URL do endpoint
+  // IMPORTANTE: Usa domínio fixo como fallback garantido para evitar URLs de preview
   const baseUrl =
     process.env.NEXT_PUBLIC_APP_URL ||
     (process.env.VERCEL_PROJECT_PRODUCTION_URL &&
       `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`) ||
+    (process.env.VERCEL_ENV === 'production'
+      ? 'https://smartzap.escoladeautomacao.com.br'
+      : null) ||
     (process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`) ||
     'http://localhost:3000'
 
