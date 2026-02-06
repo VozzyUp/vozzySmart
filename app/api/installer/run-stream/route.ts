@@ -484,7 +484,12 @@ export async function POST(req: Request) {
           vercel.projectId,
           vercel.teamId || undefined
         );
-        vercelDeploymentId = redeploy.deploymentId;
+        
+        if (redeploy) {
+          vercelDeploymentId = redeploy.deploymentId;
+        } else {
+          console.warn('[run-stream] triggerProjectRedeploy retornou null (projeto sem deployments)');
+        }
       } catch (err) {
         try {
           console.warn('[run-stream] Redeploy falhou, reabilitando installer...');
