@@ -7,8 +7,8 @@ import nacl from 'tweetnacl';
 import { encodeBase64, decodeUTF8 } from 'tweetnacl-util';
 
 const GITHUB_API_BASE = 'https://api.github.com';
-const TEMPLATE_OWNER = 'vozzyups-projects';
-const TEMPLATE_REPO = 'vozzysmart_template';
+const TEMPLATE_OWNER = 'VozzyUp';
+const TEMPLATE_REPO = 'vozzySmart';
 
 export interface GitHubUser {
   login: string;
