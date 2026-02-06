@@ -81,6 +81,19 @@ export async function GET() {
       deliveryRate,
     })
   } catch (error) {
+    // If Supabase is not configured (e.g. during build/install), return empty stats instead of 500
+    if (error instanceof Error && error.message.includes('Supabase not configured')) {
+        console.warn('[Dashboard API] Supabase not configured, returning empty stats');
+        return NextResponse.json({
+            totalSent: 0,
+            totalDelivered: 0,
+            totalRead: 0,
+            totalFailed: 0,
+            activeCampaigns: 0,
+            deliveryRate: 0,
+        })
+    }
+
     console.error('Error fetching dashboard stats:', error)
     return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 })
   }

@@ -4,10 +4,29 @@ import { getCampaignsServer } from './campaigns'
 
 export async function getDashboardStatsServer(): Promise<{ stats: DashboardStats, recentCampaigns: any[] }> {
     // Parallel fetch stats source data and recent campaigns
-    const [statsData, campaignsResult] = await Promise.all([
-        supabase.from('campaigns').select('sent, delivered, read, failed, status'),
-        getCampaignsServer({ limit: 7, offset: 0 })
-    ])
+    try {
+        // Parallel fetch stats source data and recent campaigns
+        const [statsData, campaignsResult] = await Promise.all([
+            // Supabase.from calls getSupabaseAdmin which might throw if keys are missing
+            (async () => {
+                try {
+                   return await supabase.from('campaigns').select('sent, delivered, read, failed, status')
+                } catch (e) {
+                   if (e instanceof Error && e.message.includes('Supabase not configured')) {
+                       return { data: [], error: null }
+                   }
+                   throw e
+                }
+            })(),
+            (async () => {
+                try {
+                    return await getCampaignsServer({ limit: 7, offset: 0 })
+                } catch (e) {
+                    // Handle potential errors in campaigns fetch
+                    return { data: [], error: null, count: 0 }
+                }
+            })()
+        ])
 
     // --- Aggregate Stats ---
     const { data, error } = statsData
