@@ -147,23 +147,30 @@ export function VercelForm({ data, onComplete, onBack, showBack }: FormProps) {
             </ol>
           </div>
 
-          {/* Passo 2: Conectar GitHub - CRÍTICO */}
+          {/* Passo 2: Instalar e Conectar GitHub - CRÍTICO */}
           <div className="border-t border-[var(--br-dust-gray)]/20 pt-3">
             <p className="text-xs font-mono text-[var(--br-neon-magenta)] font-bold mb-1.5">
-              2. CONECTAR GITHUB ⚠️ OBRIGATÓRIO
+              2. INSTALAR INTEGRAÇÃO GITHUB ⚠️ OBRIGATÓRIO
             </p>
             <ol className="text-xs font-mono text-[var(--br-muted-cyan)] space-y-1 list-disc list-inside ml-2">
               <li>
-                Acesse{' '}
-                <a href="https://vercel.com/account/login-connections" target="_blank" rel="noopener noreferrer" className="text-[var(--br-neon-magenta)] hover:underline">
-                  vercel.com/account/login-connections
+                <strong className="text-[var(--br-hologram-white)]">Primeiro:</strong> Instale o app{' '}
+                <a href="https://github.com/apps/vercel" target="_blank" rel="noopener noreferrer" className="text-[var(--br-neon-magenta)] hover:underline">
+                  github.com/apps/vercel
                 </a>
               </li>
-              <li>Clique em <strong className="text-[var(--br-hologram-white)]">Connect GitHub Account</strong></li>
-              <li>Autorize o Vercel a acessar seus repositórios</li>
+              <li>Clique em <strong className="text-[var(--br-hologram-white)]">Install</strong> ou <strong className="text-[var(--br-hologram-white)]">Configure</strong></li>
+              <li>Selecione sua conta/organização</li>
+              <li>Autorize o acesso aos repositórios</li>
+              <li>
+                <strong className="text-[var(--br-hologram-white)]">Depois:</strong> Conecte sua conta em{' '}
+                <a href="https://vercel.com/account/login-connections" target="_blank" rel="noopener noreferrer" className="text-[var(--br-neon-magenta)] hover:underline">
+                  login-connections
+                </a>
+              </li>
             </ol>
             <p className="text-xs font-mono text-[var(--br-neon-orange)] mt-1.5 italic">
-              * Sem essa conexão, o deploy automático não funcionará
+              * Sem a integração instalada, o deploy automático falhará
             </p>
           </div>
 
