@@ -283,7 +283,12 @@ export async function POST(req: Request) {
         vercel.projectId,
         vercel.teamId || undefined
       );
-      vercelDeploymentId = redeploy.deploymentId;
+      
+      if (redeploy) {
+        vercelDeploymentId = redeploy.deploymentId;
+      } else {
+        console.warn('[run] triggerProjectRedeploy retornou null (projeto sem deployments)');
+      }
     } catch (err) {
       try {
         await upsertProjectEnvs(
