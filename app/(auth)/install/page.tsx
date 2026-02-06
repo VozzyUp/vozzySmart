@@ -28,6 +28,7 @@ import { InstallLayout } from '@/components/install/InstallLayout';
 import { StepCard } from '@/components/install/StepCard';
 import {
   IdentityForm,
+  GitHubForm,
   VercelForm,
   SupabaseForm,
   QStashForm,
@@ -158,10 +159,11 @@ export default function InstallPage() {
 
     const glowColors: Record<InstallStep, 'cyan' | 'magenta' | 'orange' | 'red'> = {
       1: 'cyan',
-      2: 'magenta',
-      3: 'cyan',
-      4: 'orange',
-      5: 'red',
+      2: 'magenta',  // GitHub
+      3: 'cyan',     // Vercel
+      4: 'orange',   // Supabase
+      5: 'red',      // QStash
+      6: 'magenta',  // Redis
     };
 
     const renderForm = () => {
@@ -176,12 +178,14 @@ export default function InstallPage() {
         case 1:
           return <IdentityForm key="identity" {...formProps} />;
         case 2:
-          return <VercelForm key="vercel" {...formProps} />;
+          return <GitHubForm key="github" {...formProps} />;
         case 3:
-          return <SupabaseForm key="supabase" {...formProps} />;
+          return <VercelForm key="vercel" {...formProps} />;
         case 4:
-          return <QStashForm key="qstash" {...formProps} />;
+          return <SupabaseForm key="supabase" {...formProps} />;
         case 5:
+          return <QStashForm key="qstash" {...formProps} />;
+        case 6:
           return <RedisForm key="redis" {...formProps} />;
         default:
           return null;
@@ -189,7 +193,7 @@ export default function InstallPage() {
     };
 
     return (
-      <InstallLayout currentStep={step} totalSteps={5}>
+      <InstallLayout currentStep={step} totalSteps={6}>
         {/* Botão "Voltar" removido - já existe dentro dos forms */}
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div

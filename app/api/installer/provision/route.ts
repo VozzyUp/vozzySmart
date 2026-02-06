@@ -46,6 +46,13 @@ const ProvisionSchema = z.object({
     email: z.string().email(),
     password: z.string().min(8),
   }),
+  github: z.object({
+    token: z.string().min(1),
+    username: z.string().min(1),
+    repoName: z.string().min(1),
+    repoUrl: z.string().url(),
+    repoFullName: z.string().min(1), // owner/repo format
+  }),
   vercel: z.object({
     token: z.string().min(24),
   }),
@@ -84,18 +91,21 @@ interface Step {
 }
 
 const STEPS: Step[] = [
-  { id: 'validate_vercel', title: 'Conectando Link Neural...', subtitle: 'Autenticando com servidor de deploy', weight: 5, returnToStep: 2 },
-  { id: 'validate_supabase', title: 'Escaneando Memória Base...', subtitle: 'Verificando credenciais Supabase', weight: 5, returnToStep: 3 },
-  { id: 'create_project', title: 'Criando Unidade...', subtitle: 'Alocando nova instância de memória', weight: 10, returnToStep: 3 },
-  { id: 'wait_project', title: 'Incubando Unidade...', subtitle: 'Aguardando células se multiplicarem', weight: 15, returnToStep: 3 },
-  { id: 'resolve_keys', title: 'Extraindo DNA...', subtitle: 'Resolvendo chaves de acesso', weight: 5, returnToStep: 3 },
-  { id: 'validate_qstash', title: 'Calibrando Transmissão...', subtitle: 'Verificando canal de mensagens', weight: 5, returnToStep: 4 },
-  { id: 'validate_redis', title: 'Inicializando Cache...', subtitle: 'Testando memória temporária', weight: 5, returnToStep: 5 },
-  { id: 'setup_envs', title: 'Implantando Memórias...', subtitle: 'Configurando variáveis de ambiente', weight: 10, returnToStep: 2 },
-  { id: 'migrations', title: 'Estruturando Sinapses...', subtitle: 'Criando conexões neurais do banco', weight: 15, returnToStep: 3 },
+  { id: 'validate_github', title: 'Conectando GitHub...', subtitle: 'Verificando repositório criado', weight: 5, returnToStep: 2 },
+  { id: 'validate_vercel', title: 'Conectando Link Neural...', subtitle: 'Autenticando com servidor de deploy', weight: 5, returnToStep: 3 },
+  { id: 'connect_vercel_github', title: 'Sincronizando Repositório...', subtitle: 'Conectando Vercel ao GitHub', weight: 10, returnToStep: 3 },
+  { id: 'validate_supabase', title: 'Escaneando Memória Base...', subtitle: 'Verificando credenciais Supabase', weight: 5, returnToStep: 4 },
+  { id: 'create_project', title: 'Criando Unidade...', subtitle: 'Alocando nova instância de memória', weight: 10, returnToStep: 4 },
+  { id: 'wait_project', title: 'Incubando Unidade...', subtitle: 'Aguardando células se multiplicarem', weight: 15, returnToStep: 4 },
+  { id: 'resolve_keys', title: 'Extraindo DNA...', subtitle: 'Resolvendo chaves de acesso', weight: 5, returnToStep: 4 },
+  { id: 'validate_qstash', title: 'Calibrando Transmissão...', subtitle: 'Verificando canal de mensagens', weight: 5, returnToStep: 5 },
+  { id: 'validate_redis', title: 'Inicializando Cache...', subtitle: 'Testando memória temporária', weight: 5, returnToStep: 6 },
+  { id: 'setup_envs', title: 'Implantando Memórias...', subtitle: 'Configurando variáveis de ambiente', weight: 10, returnToStep: 3 },
+  { id: 'setup_github_secrets', title: 'Protegendo Credenciais...', subtitle: 'Configurando secrets no GitHub', weight: 5, returnToStep: 2 },
+  { id: 'migrations', title: 'Estruturando Sinapses...', subtitle: 'Criando conexões neurais do banco', weight: 15, returnToStep: 4 },
   { id: 'bootstrap', title: 'Registrando Baseline...', subtitle: 'Criando identidade administrativa', weight: 10, returnToStep: 1 },
-  { id: 'redeploy', title: 'Ativando Replicante...', subtitle: 'Fazendo deploy das configurações', weight: 10, returnToStep: 2 },
-  { id: 'wait_deploy', title: 'Despertar Iminente...', subtitle: 'Finalizando processo de incubação', weight: 5, returnToStep: 2 },
+  { id: 'redeploy', title: 'Ativando Replicante...', subtitle: 'Fazendo deploy das configurações', weight: 10, returnToStep: 3 },
+  { id: 'wait_deploy', title: 'Despertar Iminente...', subtitle: 'Finalizando processo de incubação', weight: 5, returnToStep: 3 },
 ];
 
 // =============================================================================
@@ -353,7 +363,7 @@ export async function POST(req: Request) {
   }
 
   console.log('[provision] ✅ Payload válido');
-  const { identity, vercel, supabase, qstash, redis } = parsed.data;
+  const { identity, github, vercel, supabase, qstash, redis } = parsed.data;
 
   // Create SSE stream
   const encoder = new TextEncoder();
@@ -378,9 +388,9 @@ export async function POST(req: Request) {
     let dbUrl = '';
 
     try {
-      // Step 1: Validate Vercel token
-      console.log('[provision] 📍 Step 1/12: Validate Vercel - INICIANDO');
-      const step1 = STEPS[stepIndex];
+      // Step 1: Validate GitHub repository
+      console.log('[provision] 📍 Step 1/15: Validate GitHub - INICIANDO');
+      const step3 = STEPS[stepIndex];
       await sendEvent({
         type: 'progress',
         progress: calculateProgress(stepIndex),
@@ -388,13 +398,64 @@ export async function POST(req: Request) {
         subtitle: step1.subtitle,
       });
 
-      vercelProject = await validateVercelToken(vercel.token);
-      console.log('[provision] ✅ Step 1/12: Validate Vercel - COMPLETO', { projectId: vercelProject.projectId, projectName: vercelProject.projectName });
+      // Verify repository exists
+      const { checkRepoExists } = await import('@/lib/installer/github');
+      const [owner, repo] = github.repoFullName.split('/');
+      const repoCheck = await checkRepoExists({
+        token: github.token,
+        owner,
+        repo,
+      });
+
+      if (!repoCheck.exists) {
+        throw new Error('Repositório GitHub não encontrado. Verifique se foi criado corretamente.');
+      }
+
+      console.log('[provision] ✅ Step 1/15: Validate GitHub - COMPLETO', { repoFullName: github.repoFullName });
       stepIndex++;
 
-      // Step 2: Validate Supabase PAT
-      console.log('[provision] 📍 Step 2/12: Validate Supabase PAT - INICIANDO');
-      const step2 = STEPS[stepIndex];
+      // Step 2: Validate Vercel token
+      console.log('[provision] 📍 Step 2/15: Validate Vercel - INICIANDO');
+      const step3 = STEPS[stepIndex];
+      await sendEvent({
+        type: 'progress',
+        progress: calculateProgress(stepIndex),
+        title: step2.title,
+        subtitle: step2.subtitle,
+      });
+
+      vercelProject = await validateVercelToken(vercel.token);
+      console.log('[provision] ✅ Step 2/15: Validate Vercel - COMPLETO', { projectId: vercelProject.projectId, projectName: vercelProject.projectName });
+      stepIndex++;
+
+      // Step 3: Connect Vercel to GitHub
+      console.log('[provision] 📍 Step 3/15: Connect Vercel to GitHub - INICIANDO');
+      const step3 = STEPS[stepIndex];
+      await sendEvent({
+        type: 'progress',
+        progress: calculateProgress(stepIndex),
+        title: step3.title,
+        subtitle: step3.subtitle,
+      });
+
+      const { connectVercelToGitHub } = await import('@/lib/installer/vercel-github');
+      const connectionResult = await connectVercelToGitHub({
+        vercelToken: vercel.token,
+        projectId: vercelProject.projectId,
+        githubRepoFullName: github.repoFullName,
+        teamId: vercelProject.teamId,
+      });
+
+      if (!connectionResult.ok) {
+        throw new Error(connectionResult.error);
+      }
+
+      console.log('[provision] ✅ Step 3/15: Connect Vercel to GitHub - COMPLETO');
+      stepIndex++;
+
+      // Step 4: Validate Supabase PAT
+      console.log('[provision] 📍 Step 4/15: Validate Supabase PAT - INICIANDO');
+      const step3 = STEPS[stepIndex];
       await sendEvent({
         type: 'progress',
         progress: calculateProgress(stepIndex),
@@ -406,11 +467,11 @@ export async function POST(req: Request) {
       if (!supabase.pat.startsWith('sbp_')) {
         throw new Error('PAT Supabase inválido (deve começar com sbp_)');
       }
-      console.log('[provision] ✅ Step 2/12: Validate Supabase PAT - COMPLETO');
+      console.log('[provision] ✅ Step 4/15: Validate Supabase PAT - COMPLETO');
       stepIndex++;
 
-      // Step 3: Create/find Supabase project
-      console.log('[provision] 📍 Step 3/12: Create Supabase Project - INICIANDO');
+      // Step 5: Create/find Supabase project
+      console.log('[provision] 📍 Step 5/15: Create Supabase Project - INICIANDO');
       const step3 = STEPS[stepIndex];
       await sendEvent({
         type: 'progress',
@@ -450,12 +511,12 @@ export async function POST(req: Request) {
           clearInterval(createHeartbeat);
         }
       }
-      console.log('[provision] ✅ Step 3/12: Create Supabase Project - COMPLETO', { projectRef: supabaseProject.projectRef, isNew: supabaseProject.isNew });
+      console.log('[provision] ✅ Step 3/15: Create Supabase Project - COMPLETO', { projectRef: supabaseProject.projectRef, isNew: supabaseProject.isNew });
       stepIndex++;
 
       // Step 4: Wait for project to be ready (sempre aguarda - projeto é sempre novo)
-      console.log('[provision] 📍 Step 4/12: Wait for Supabase Ready - INICIANDO');
-      const step4 = STEPS[stepIndex];
+      console.log('[provision] 📍 Step 3/15: Wait for Supabase Ready - INICIANDO');
+      const step3 = STEPS[stepIndex];
       await sendEvent({
         type: 'progress',
         progress: calculateProgress(stepIndex),
@@ -475,7 +536,7 @@ export async function POST(req: Request) {
         });
 
         if (ready.ok) {
-          console.log('[provision] ✅ Step 4/12: Supabase project is READY');
+          console.log('[provision] ✅ Step 3/15: Supabase project is READY');
           break;
         }
 
@@ -487,12 +548,12 @@ export async function POST(req: Request) {
           subtitle: `Células se multiplicando... (${Math.round(fraction * 100)}%)`,
         });
       }
-      console.log('[provision] ✅ Step 4/12: Wait for Supabase Ready - COMPLETO', { elapsed: Date.now() - startTime });
+      console.log('[provision] ✅ Step 3/15: Wait for Supabase Ready - COMPLETO', { elapsed: Date.now() - startTime });
       stepIndex++;
 
       // Step 5: Resolve Supabase keys
-      console.log('[provision] 📍 Step 5/12: Resolve Supabase Keys - INICIANDO');
-      const step5 = STEPS[stepIndex];
+      console.log('[provision] 📍 Step 3/15: Resolve Supabase Keys - INICIANDO');
+      const step3 = STEPS[stepIndex];
       await sendEvent({
         type: 'progress',
         progress: calculateProgress(stepIndex),
@@ -511,11 +572,11 @@ export async function POST(req: Request) {
 
       anonKey = keysResult.publishableKey;
       serviceRoleKey = keysResult.secretKey;
-      console.log('[provision] ✅ Step 5/12: Got API keys (anon + service_role)');
+      console.log('[provision] ✅ Step 3/15: Got API keys (anon + service_role)');
 
       // Resolve DB URL
       if (supabaseProject.dbPass) {
-        console.log('[provision] 📍 Step 5/12: Resolving DB URL (shared pooler primary)...');
+        console.log('[provision] 📍 Step 3/15: Resolving DB URL (shared pooler primary)...');
         const poolerResult = await resolveSupabaseDbUrl({
           projectRef: supabaseProject.projectRef,
           accessToken: supabase.pat,
@@ -523,13 +584,13 @@ export async function POST(req: Request) {
 
         if (poolerResult.ok) {
           dbUrl = buildPoolerDbUrl(supabaseProject.projectRef, supabaseProject.dbPass, poolerResult.host);
-          console.log('[provision] ✅ Step 5/12: DB URL pooler (postgres) resolvida', { host: poolerResult.host });
+          console.log('[provision] ✅ Step 3/15: DB URL pooler (postgres) resolvida', { host: poolerResult.host });
         } else {
-          console.warn('[provision] ⚠️ Step 5/12: Pooler indisponível - usando conexão direta');
+          console.warn('[provision] ⚠️ Step 3/15: Pooler indisponível - usando conexão direta');
           dbUrl = buildDirectDbUrl(supabaseProject.projectRef, supabaseProject.dbPass);
         }
       } else {
-        console.log('[provision] 📍 Step 5/12: dbPass ausente, usando pooler...');
+        console.log('[provision] 📍 Step 3/15: dbPass ausente, usando pooler...');
         const poolerResult = await resolveSupabaseDbUrl({
           projectRef: supabaseProject.projectRef,
           accessToken: supabase.pat,
@@ -537,18 +598,18 @@ export async function POST(req: Request) {
 
         if (poolerResult.ok) {
           dbUrl = poolerResult.dbUrl;
-          console.log('[provision] ✅ Step 5/12: DB URL pooler resolvida', { host: poolerResult.host });
+          console.log('[provision] ✅ Step 3/15: DB URL pooler resolvida', { host: poolerResult.host });
         } else {
-          console.warn('[provision] ⚠️ Step 5/12: No dbPass and failed to resolve pooler - migrations will be skipped!');
+          console.warn('[provision] ⚠️ Step 3/15: No dbPass and failed to resolve pooler - migrations will be skipped!');
         }
       }
 
-      console.log('[provision] ✅ Step 5/12: Resolve Supabase Keys - COMPLETO', { hasDbUrl: !!dbUrl });
+      console.log('[provision] ✅ Step 3/15: Resolve Supabase Keys - COMPLETO', { hasDbUrl: !!dbUrl });
       stepIndex++;
 
       // Step 6: Validate QStash
-      console.log('[provision] 📍 Step 6/12: Validate QStash - INICIANDO');
-      const step6 = STEPS[stepIndex];
+      console.log('[provision] 📍 Step 3/15: Validate QStash - INICIANDO');
+      const step3 = STEPS[stepIndex];
       await sendEvent({
         type: 'progress',
         progress: calculateProgress(stepIndex),
@@ -557,12 +618,12 @@ export async function POST(req: Request) {
       });
 
       await validateQStashToken(qstash.token);
-      console.log('[provision] ✅ Step 6/12: Validate QStash - COMPLETO');
+      console.log('[provision] ✅ Step 3/15: Validate QStash - COMPLETO');
       stepIndex++;
 
       // Step 7: Validate Redis
-      console.log('[provision] 📍 Step 7/12: Validate Redis - INICIANDO');
-      const step7 = STEPS[stepIndex];
+      console.log('[provision] 📍 Step 3/15: Validate Redis - INICIANDO');
+      const step3 = STEPS[stepIndex];
       await sendEvent({
         type: 'progress',
         progress: calculateProgress(stepIndex),
@@ -571,12 +632,12 @@ export async function POST(req: Request) {
       });
 
       await validateRedisCredentials(redis.restUrl, redis.restToken);
-      console.log('[provision] ✅ Step 7/12: Validate Redis - COMPLETO');
+      console.log('[provision] ✅ Step 3/15: Validate Redis - COMPLETO');
       stepIndex++;
 
       // Step 8: Setup env vars
-      console.log('[provision] 📍 Step 8/12: Setup Env Vars - INICIANDO');
-      const step8 = STEPS[stepIndex];
+      console.log('[provision] 📍 Step 3/15: Setup Env Vars - INICIANDO');
+      const step3 = STEPS[stepIndex];
       await sendEvent({
         type: 'progress',
         progress: calculateProgress(stepIndex),
@@ -602,13 +663,13 @@ export async function POST(req: Request) {
         { key: 'SUPABASE_ACCESS_TOKEN', value: supabase.pat, targets: [...envTargets] },
       ];
 
-      console.log('[provision] 📍 Step 8/12: Upserting', envVars.length, 'env vars...');
+      console.log('[provision] 📍 Step 3/15: Upserting', envVars.length, 'env vars...');
       await upsertProjectEnvs(vercel.token, vercelProject.projectId, envVars, vercelProject.teamId);
-      console.log('[provision] ✅ Step 8/12: Env vars upserted');
+      console.log('[provision] ✅ Step 3/15: Env vars upserted');
 
       // Desabilita Deployment Protection para permitir acesso de serviços M2M (QStash)
       // Isso é necessário para que workflows e webhooks funcionem corretamente
-      console.log('[provision] 📍 Step 8/12: Disabling Deployment Protection...');
+      console.log('[provision] 📍 Step 3/15: Disabling Deployment Protection...');
       const protectionResult = await disableDeploymentProtection(
         vercel.token,
         vercelProject.projectId,
@@ -622,13 +683,45 @@ export async function POST(req: Request) {
         console.log('[provision] ✅ Deployment Protection desabilitado com sucesso');
       }
 
-      console.log('[provision] ✅ Step 8/12: Setup Env Vars - COMPLETO');
+      console.log('[provision] ✅ Step 3/15: Setup Env Vars - COMPLETO');
       stepIndex++;
 
+      // Step: Configure GitHub Secrets
+      console.log('[provision] 📍 Configuring GitHub Secrets...');
+      try {
+        const { addRepoSecrets } = await import('@/lib/installer/github');
+        const [owner, repo] = github.repoFullName.split('/');
+        
+        const secretsResult = await addRepoSecrets({
+          token: github.token,
+          owner,
+          repo,
+          secrets: {
+            VERCEL_TOKEN: vercel.token,
+            SUPABASE_URL: supabaseProject.projectUrl,
+            SUPABASE_ANON_KEY: anonKey,
+            SUPABASE_SERVICE_ROLE_KEY: serviceRoleKey,
+            QSTASH_TOKEN: qstash.token,
+            REDIS_URL: redis.restUrl,
+            REDIS_TOKEN: redis.restToken,
+            MASTER_PASSWORD: passwordHash,
+          },
+        });
+
+        if (!secretsResult.ok) {
+          console.warn('[provision] ⚠️ Falha ao configurar secrets no GitHub:', secretsResult.error);
+        } else {
+          console.log('[provision] ✅ GitHub secrets configurados');
+        }
+      } catch (err) {
+        console.warn('[provision] ⚠️ Erro ao configurar GitHub secrets:', err);
+      }
+
+
       // Step 9: Run migrations
-      console.log('[provision] 📍 Step 9/12: Run Migrations - INICIANDO');
-      console.log('[provision] 📍 Step 9/12: dbUrl available?', !!dbUrl);
-      const step9 = STEPS[stepIndex];
+      console.log('[provision] 📍 Step 3/15: Run Migrations - INICIANDO');
+      console.log('[provision] 📍 Step 3/15: dbUrl available?', !!dbUrl);
+      const step3 = STEPS[stepIndex];
       await sendEvent({
         type: 'progress',
         progress: calculateProgress(stepIndex),
@@ -637,28 +730,28 @@ export async function POST(req: Request) {
       });
 
       if (dbUrl) {
-        console.log('[provision] 📍 Step 9/12: Checking if schema exists...');
+        console.log('[provision] 📍 Step 3/15: Checking if schema exists...');
         const schemaExists = await checkSchemaApplied(dbUrl);
-        console.log('[provision] 📍 Step 9/12: schemaExists =', schemaExists);
+        console.log('[provision] 📍 Step 3/15: schemaExists =', schemaExists);
         if (!schemaExists) {
-          console.log('[provision] 📍 Step 9/12: Running migrations...');
+          console.log('[provision] 📍 Step 3/15: Running migrations...');
           await runSchemaMigration(dbUrl);
-          console.log('[provision] ✅ Step 9/12: Migrations completed, waiting 5s for schema cache...');
+          console.log('[provision] ✅ Step 3/15: Migrations completed, waiting 5s for schema cache...');
           // Wait for schema cache to update
           await new Promise((r) => setTimeout(r, 5000));
-          console.log('[provision] ✅ Step 9/12: Schema cache wait complete');
+          console.log('[provision] ✅ Step 3/15: Schema cache wait complete');
         } else {
-          console.log('[provision] ℹ️ Step 9/12: Schema already exists, skipping migrations');
+          console.log('[provision] ℹ️ Step 3/15: Schema already exists, skipping migrations');
         }
       } else {
-        console.error('[provision] ❌ Step 9/12: NO DB URL - MIGRATIONS SKIPPED!');
+        console.error('[provision] ❌ Step 3/15: NO DB URL - MIGRATIONS SKIPPED!');
       }
-      console.log('[provision] ✅ Step 9/12: Run Migrations - COMPLETO');
+      console.log('[provision] ✅ Step 3/15: Run Migrations - COMPLETO');
       stepIndex++;
 
       // Step 10: Bootstrap admin
-      console.log('[provision] 📍 Step 10/12: Bootstrap Admin - INICIANDO');
-      const step10 = STEPS[stepIndex];
+      console.log('[provision] 📍 Step 3/15: Bootstrap Admin - INICIANDO');
+      const step3 = STEPS[stepIndex];
       await sendEvent({
         type: 'progress',
         progress: calculateProgress(stepIndex),
@@ -672,12 +765,12 @@ export async function POST(req: Request) {
         adminEmail: identity.email,
         adminName: identity.name,
       });
-      console.log('[provision] ✅ Step 10/12: Bootstrap Admin - COMPLETO');
+      console.log('[provision] ✅ Step 3/15: Bootstrap Admin - COMPLETO');
       stepIndex++;
 
       // Step 11: Redeploy
-      console.log('[provision] 📍 Step 11/12: Redeploy - INICIANDO');
-      const step11 = STEPS[stepIndex];
+      console.log('[provision] 📍 Step 3/15: Redeploy - INICIANDO');
+      const step3 = STEPS[stepIndex];
       await sendEvent({
         type: 'progress',
         progress: calculateProgress(stepIndex),
@@ -686,7 +779,7 @@ export async function POST(req: Request) {
       });
 
       // Disable installer before redeploy
-      console.log('[provision] 📍 Step 11/12: Disabling installer...');
+      console.log('[provision] 📍 Step 3/15: Disabling installer...');
       await upsertProjectEnvs(
         vercel.token,
         vercelProject.projectId,
@@ -694,7 +787,7 @@ export async function POST(req: Request) {
         vercelProject.teamId
       );
 
-      console.log('[provision] 📍 Step 11/12: Triggering redeploy...');
+      console.log('[provision] 📍 Step 3/15: Triggering redeploy...');
       let redeploy: { deploymentId?: string };
       try {
         redeploy = await triggerProjectRedeploy(vercel.token, vercelProject.projectId, vercelProject.teamId);
@@ -712,12 +805,12 @@ export async function POST(req: Request) {
         }
         throw err;
       }
-      console.log('[provision] ✅ Step 11/12: Redeploy triggered', { deploymentId: redeploy.deploymentId });
+      console.log('[provision] ✅ Step 3/15: Redeploy triggered', { deploymentId: redeploy.deploymentId });
       stepIndex++;
 
       // Step 12: Wait for deploy
-      console.log('[provision] 📍 Step 12/12: Wait for Deploy - INICIANDO');
-      const step12 = STEPS[stepIndex];
+      console.log('[provision] 📍 Step 3/15: Wait for Deploy - INICIANDO');
+      const step3 = STEPS[stepIndex];
       await sendEvent({
         type: 'progress',
         progress: calculateProgress(stepIndex),
@@ -726,7 +819,7 @@ export async function POST(req: Request) {
       });
 
       if (redeploy.deploymentId) {
-        console.log('[provision] 📍 Step 12/12: Waiting for deployment to be ready...');
+        console.log('[provision] 📍 Step 3/15: Waiting for deployment to be ready...');
         await waitForVercelDeploymentReady({
           token: vercel.token,
           deploymentId: redeploy.deploymentId,
@@ -743,11 +836,11 @@ export async function POST(req: Request) {
             });
           },
         });
-        console.log('[provision] ✅ Step 12/12: Deployment is READY');
+        console.log('[provision] ✅ Step 3/15: Deployment is READY');
       } else {
-        console.warn('[provision] ⚠️ Step 12/12: No deploymentId, skipping wait');
+        console.warn('[provision] ⚠️ Step 3/15: No deploymentId, skipping wait');
       }
-      console.log('[provision] ✅ Step 12/12: Wait for Deploy - COMPLETO');
+      console.log('[provision] ✅ Step 3/15: Wait for Deploy - COMPLETO');
 
       // Complete!
       console.log('[provision] 🎉 PROVISIONING COMPLETE - ALL 12 STEPS DONE!');

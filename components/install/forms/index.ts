@@ -1,4 +1,5 @@
 export { IdentityForm } from './IdentityForm';
+export { GitHubForm } from './GitHubForm';
 export { VercelForm } from './VercelForm';
 export { SupabaseForm } from './SupabaseForm';
 export { QStashForm } from './QStashForm';
