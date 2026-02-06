@@ -2,6 +2,8 @@
 
 import { motion } from 'framer-motion';
 import { ReactNode, useEffect, useRef, useCallback } from 'react';
+import { RotateCcw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { StepDots } from './StepDots';
 import { RainEffect } from './RainEffect';
 import { cn } from '@/lib/utils';
@@ -45,6 +47,15 @@ export function InstallLayout({
       stopAmbient();
     };
   }, []);
+
+  // Handler para reiniciar instalação
+  const handleResetInstallation = useCallback(() => {
+    if (confirm('Tem certeza que deseja reiniciar a instalação? Todo o progresso será perdido.')) {
+      localStorage.clear();
+      window.location.reload();
+    }
+  }, []);
+
   return (
     <div
       onClick={handleInteraction}
@@ -69,6 +80,19 @@ export function InstallLayout({
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[var(--br-neon-cyan)] opacity-[0.03] rounded-full blur-[100px]" />
         {/* Bottom magenta glow */}
         <div className="absolute bottom-0 right-0 w-[600px] h-[300px] bg-[var(--br-neon-magenta)] opacity-[0.02] rounded-full blur-[80px]" />
+      </div>
+
+      {/* Reset Installation Button */}
+      <div className="absolute top-4 right-4 z-20">
+        <Button
+          onClick={handleResetInstallation}
+          variant="outline"
+          size="sm"
+          className="gap-2 text-xs border-[var(--br-dust-gray)]/30 hover:border-[var(--br-neon-cyan)] text-[var(--br-muted-cyan)] hover:text-[var(--br-neon-cyan)] bg-[var(--br-void-black)]/80 backdrop-blur-sm"
+        >
+          <RotateCcw className="h-3 w-3" />
+          Reiniciar
+        </Button>
       </div>
 
       {/* Content */}

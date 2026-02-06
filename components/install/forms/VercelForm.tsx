@@ -130,22 +130,64 @@ export function VercelForm({ data, onComplete, onBack, showBack }: FormProps) {
           <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" />
           como obter credenciais?
         </summary>
-        <div className="mt-3 p-3 rounded-lg bg-[var(--br-void-black)]/50 border border-[var(--br-dust-gray)]/30 text-left space-y-2">
-          <ol className="text-xs font-mono text-[var(--br-muted-cyan)] space-y-1.5 list-decimal list-inside">
-            <li>
-              Acesse{' '}
-              <a href="https://vercel.com/account/tokens" target="_blank" rel="noopener noreferrer" className="text-[var(--br-neon-magenta)] hover:underline">
-                vercel.com/account/tokens
-              </a>
-            </li>
-            <li>
-              Clique em <strong className="text-[var(--br-hologram-white)]">Create</strong>
-            </li>
-            <li>
-              Nome: <strong className="text-[var(--br-hologram-white)]">smartzap</strong> • Scope: <strong className="text-[var(--br-hologram-white)]">Full Account</strong>
-            </li>
-            <li>Copie e cole as credenciais acima</li>
-          </ol>
+        <div className="mt-3 p-3 rounded-lg bg-[var(--br-void-black)]/50 border border-[var(--br-dust-gray)]/30 text-left space-y-3">
+          {/* Passo 1: Criar conta */}
+          <div>
+            <p className="text-xs font-mono text-[var(--br-neon-magenta)] font-bold mb-1.5">
+              1. CRIAR CONTA (se não tiver)
+            </p>
+            <ol className="text-xs font-mono text-[var(--br-muted-cyan)] space-y-1 list-disc list-inside ml-2">
+              <li>
+                Acesse{' '}
+                <a href="https://vercel.com/signup" target="_blank" rel="noopener noreferrer" className="text-[var(--br-neon-magenta)] hover:underline">
+                  vercel.com/signup
+                </a>
+              </li>
+              <li>Crie sua conta (pode usar GitHub, Google, etc.)</li>
+            </ol>
+          </div>
+
+          {/* Passo 2: Conectar GitHub - CRÍTICO */}
+          <div className="border-t border-[var(--br-dust-gray)]/20 pt-3">
+            <p className="text-xs font-mono text-[var(--br-neon-magenta)] font-bold mb-1.5">
+              2. CONECTAR GITHUB ⚠️ OBRIGATÓRIO
+            </p>
+            <ol className="text-xs font-mono text-[var(--br-muted-cyan)] space-y-1 list-disc list-inside ml-2">
+              <li>
+                Acesse{' '}
+                <a href="https://vercel.com/account/login-connections" target="_blank" rel="noopener noreferrer" className="text-[var(--br-neon-magenta)] hover:underline">
+                  vercel.com/account/login-connections
+                </a>
+              </li>
+              <li>Clique em <strong className="text-[var(--br-hologram-white)]">Connect GitHub Account</strong></li>
+              <li>Autorize o Vercel a acessar seus repositórios</li>
+            </ol>
+            <p className="text-xs font-mono text-[var(--br-neon-orange)] mt-1.5 italic">
+              * Sem essa conexão, o deploy automático não funcionará
+            </p>
+          </div>
+
+          {/* Passo 3: Gerar Token */}
+          <div className="border-t border-[var(--br-dust-gray)]/20 pt-3">
+            <p className="text-xs font-mono text-[var(--br-neon-magenta)] font-bold mb-1.5">
+              3. GERAR TOKEN
+            </p>
+            <ol className="text-xs font-mono text-[var(--br-muted-cyan)] space-y-1 list-disc list-inside ml-2">
+              <li>
+                Acesse{' '}
+                <a href="https://vercel.com/account/tokens" target="_blank" rel="noopener noreferrer" className="text-[var(--br-neon-magenta)] hover:underline">
+                  vercel.com/account/tokens
+                </a>
+              </li>
+              <li>
+                Clique em <strong className="text-[var(--br-hologram-white)]">Create</strong>
+              </li>
+              <li>
+                Nome: <strong className="text-[var(--br-hologram-white)]">smartzap</strong> • Scope: <strong className="text-[var(--br-hologram-white)]">Full Account</strong>
+              </li>
+              <li>Copie e cole as credenciais acima</li>
+            </ol>
+          </div>
         </div>
       </details>
       )}
