@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const GITHUB_OAUTH_CLIENT_ID = process.env.GITHUB_OAUTH_CLIENT_ID || '';
+const GITHUB_OAUTH_CLIENT_ID = process.env.GITHUB_OAUTH_CLIENT_ID || process.env.NEXT_PUBLIC_GITHUB_OAUTH_CLIENT_ID || '';
 const GITHUB_OAUTH_CLIENT_SECRET = process.env.GITHUB_OAUTH_CLIENT_SECRET || '';
 
 /**
@@ -35,6 +35,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Debug logs
+    console.log('[GitHub OAuth] Client ID present:', !!GITHUB_OAUTH_CLIENT_ID);
+    console.log('[GitHub OAuth] Client Secret present:', !!GITHUB_OAUTH_CLIENT_SECRET);
+    console.log('[GitHub OAuth] Exchanging code for token...');
+
+    // Constrói a mesma redirect_uri usada no frontend
+    const redirect_uri = `${request.nextUrl.origin}/api/installer/github/oauth/callback`;
+
     // Troca o code por um access token
     const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
@@ -46,12 +54,18 @@ export async function GET(request: NextRequest) {
         client_id: GITHUB_OAUTH_CLIENT_ID,
         client_secret: GITHUB_OAUTH_CLIENT_SECRET,
         code,
+        redirect_uri, // Importante: deve dar match com o usado no frontend
       }),
     });
 
     const tokenData = await tokenResponse.json();
+    console.log('[GitHub OAuth] Token response:', JSON.stringify(tokenData));
 
     if (!tokenData.access_token) {
+      console.error('[GitHub OAuth] Failed to get token:', tokenData);
+      
+      const errorMessage = tokenData.error_description || tokenData.error || 'Erro desconhecido na troca de token';
+      
       return new NextResponse(
         `
         <!DOCTYPE html>
@@ -61,7 +75,7 @@ export async function GET(request: NextRequest) {
             <script>
               window.opener.postMessage({
                 type: 'github-oauth-error',
-                error: 'Falha ao obter token de acesso'
+                error: 'Erro GitHub: ${errorMessage.replace(/'/g, "\\'")}'
               }, window.location.origin);
               window.close();
             </script>
