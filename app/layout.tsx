@@ -22,8 +22,8 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'VozzySmart - WhatsApp Manager',
-  description: 'Plataforma de automação de marketing via WhatsApp',
+  title: 'VozzySmart',
+  description: 'CRM para WhatsApp Marketing',
   manifest: '/manifest.json',
   icons: {
     icon: [
