@@ -8,7 +8,7 @@ const META_API_VERSION = 'v24.0'
 const META_API_BASE = `https://graph.facebook.com/${META_API_VERSION}`
 
 /**
- * Computa a URL do webhook do SmartZap baseado no ambiente
+ * Computa a URL do webhook do VozzySmart baseado no ambiente
  */
 function computeWebhookUrl(): string {
   const vercelEnv = process.env.VERCEL_ENV || null
@@ -146,8 +146,8 @@ export async function GET() {
     }
   }
 
-  const smartzapWebhookUrl = computeWebhookUrl()
-  const isWabaOverrideSmartZap = hierarchy?.wabaOverride
+  const vozzysmartWebhookUrl = computeWebhookUrl()
+  const isWabaOverrideVozzySmart = hierarchy?.wabaOverride
     ? hierarchy.wabaOverride.includes('/api/webhook')
     : false
 
@@ -161,10 +161,10 @@ export async function GET() {
     wabaOverride: {
       url: hierarchy?.wabaOverride || result.overrideCallbackUri || null,
       isConfigured: Boolean(hierarchy?.wabaOverride || result.overrideCallbackUri),
-      isSmartZap: isWabaOverrideSmartZap,
+      isVozzySmart: isWabaOverrideVozzySmart,
     },
     hierarchy,
-    smartzapWebhookUrl,
+    vozzysmartWebhookUrl,
   })
 }
 
@@ -173,7 +173,7 @@ export async function GET() {
  * Configura o webhook WABA (#2) com override_callback_uri
  *
  * Body:
- * { callbackUrl?: string } - Se não fornecido, usa a URL do SmartZap
+ * { callbackUrl?: string } - Se não fornecido, usa a URL do VozzySmart
  */
 export async function POST(request: Request) {
   const credentials = await getWhatsAppCredentials()
@@ -194,7 +194,7 @@ export async function POST(request: Request) {
     // ignore
   }
 
-  // Se não forneceu callbackUrl, usa a URL do SmartZap
+  // Se não forneceu callbackUrl, usa a URL do VozzySmart
   if (!callbackUrl) {
     callbackUrl = computeWebhookUrl()
   }
@@ -291,7 +291,7 @@ export async function POST(request: Request) {
     wabaOverride: {
       url: hierarchy?.wabaOverride || status.overrideCallbackUri || callbackUrl,
       isConfigured: true,
-      isSmartZap: callbackUrl.includes('/api/webhook'),
+      isVozzySmart: callbackUrl.includes('/api/webhook'),
     },
     hierarchy,
     status: status.ok
@@ -377,7 +377,7 @@ export async function DELETE() {
     wabaOverride: {
       url: null,
       isConfigured: false,
-      isSmartZap: false,
+      isVozzySmart: false,
     },
     hierarchy,
     status: status.ok

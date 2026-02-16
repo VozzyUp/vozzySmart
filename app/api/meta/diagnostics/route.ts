@@ -229,7 +229,7 @@ function buildSupportPacketText(params: {
 	}
 }) {
 	const lines: string[] = []
-	lines.push(`SmartZap · Support Packet · ${new Date().toLocaleString('pt-BR')}`)
+	lines.push(`VozzySmart · Support Packet · ${new Date().toLocaleString('pt-BR')}`)
 	lines.push(`Ambiente: ${params.meta.vercelEnv || 'desconhecido'} · Credenciais: ${params.meta.source}`)
 	lines.push(`Webhook esperado: ${params.meta.webhookUrl}`)
 	lines.push(`WABA: ${params.whatsapp.wabaId} · Phone: ${params.whatsapp.phoneNumberId} · Token: ${params.whatsapp.accessTokenPreview}`)
@@ -337,7 +337,7 @@ function buildMissingPermissionsSteps(params: { objectLabel: string; objectId: s
 		'Se estiver usando token gerado no painel do App (Configuração da API), gere novamente selecionando a WABA/número corretos antes de copiar.',
 		'No Business Manager: crie/seleciona um System User (recomendado) e atribua os ativos do WhatsApp (WABA + Phone Number).',
 		'Gere um token (ideal: System User) com as permissões whatsapp_business_messaging e whatsapp_business_management.',
-		'No app SmartZap: cole esse token e os IDs corretos em Ajustes → Credenciais WhatsApp.',
+		'No app VozzySmart: cole esse token e os IDs corretos em Ajustes → Credenciais WhatsApp.',
 		'Volte aqui e clique em Atualizar para revalidar.',
 	]
 }
@@ -354,7 +354,7 @@ function buildMissingScopesSteps(missing: string[]) {
 	return [
 		`Gere um token com os escopos/permissões: ${list}.`,
 		'Recomendado: usar System User no Business Manager e atribuir os ativos (WABA + Phone Number) antes de gerar o token.',
-		'No SmartZap: atualize o token em Ajustes → Credenciais WhatsApp e rode o diagnóstico novamente.',
+		'No VozzySmart: atualize o token em Ajustes → Credenciais WhatsApp e rode o diagnóstico novamente.',
 	]
 }
 
@@ -381,7 +381,7 @@ async function assertGraphObjectReadable(params: {
 			? [
 				'Regenere o token (pode estar expirado/invalidado).',
 				'Garanta que o token foi gerado para o Business/ativo correto e com as permissões de WhatsApp.',
-				'Atualize as credenciais no SmartZap e tente novamente.',
+				'Atualize as credenciais no VozzySmart e tente novamente.',
 			]
 			: [
 				'Confira os detalhes técnicos (error code/subcode/fbtrace_id).',
@@ -608,7 +608,7 @@ function buildReportText(
 	}
 
 	const lines = [] as string[]
-	lines.push(`SmartZap · Diagnóstico Meta/WhatsApp · ${new Date().toLocaleString('pt-BR')}`)
+	lines.push(`VozzySmart · Diagnóstico Meta/WhatsApp · ${new Date().toLocaleString('pt-BR')}`)
 	lines.push(`Ambiente: ${meta.vercelEnv || 'desconhecido'} · Credenciais: ${meta.source}`)
 	lines.push(`Webhook esperado: ${meta.webhookUrl}`)
 	if (extra?.tokenExpiry?.expiresAtIso) {

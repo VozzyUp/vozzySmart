@@ -387,10 +387,10 @@ function extractConfirmationConfigFromSpec(spec: unknown): {
   return {}
 }
 
-function extractMetaFlowIdFromSmartzapToken(flowToken: string | null): string | null {
+function extractMetaFlowIdFromVozzysmartToken(flowToken: string | null): string | null {
   const raw = String(flowToken || '').trim()
   if (!raw) return null
-  const m = raw.match(/^smartzap:(\d{6,25}):/)
+  const m = raw.match(/^vozzysmart:(\d{6,25}):/)
   return m?.[1] || null
 }
 
@@ -1108,7 +1108,7 @@ export async function POST(request: NextRequest) {
               }
               const campaignId = extractCampaignIdFromFlowToken(flowToken)
 
-              // Best-effort: mapping para campos do SmartZap
+              // Best-effort: mapping para campos do VozzySmart
               let flowLocalId: string | null = null
               let mappedData: Record<string, unknown> | null = null
               let mappedAt: string | null = null
@@ -1122,7 +1122,7 @@ export async function POST(request: NextRequest) {
                 labels?: Record<string, string>
               } | null = null
 
-              const metaFlowIdFromToken = extractMetaFlowIdFromSmartzapToken(flowToken)
+              const metaFlowIdFromToken = extractMetaFlowIdFromVozzysmartToken(flowToken)
               const metaFlowIdMismatch = !!(flowId && metaFlowIdFromToken && flowId !== metaFlowIdFromToken)
               const metaFlowIdForLookup = metaFlowIdFromToken || flowId
               if (metaFlowIdForLookup && responseJson && typeof responseJson === 'object') {

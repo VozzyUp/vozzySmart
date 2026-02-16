@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
   const bodyText = await request.text()
   const signature = request.headers.get('upstash-signature')
   const cookieHeader = request.headers.get('cookie') || ''
-  const hasSession = cookieHeader.includes('smartzap_session=')
+  const hasSession = cookieHeader.includes('vozzysmart_session=')
 
   // Auth: QStash requests têm signature header, requests manuais usam session ou API key
   if (!signature && !hasSession) {

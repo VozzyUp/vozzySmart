@@ -133,7 +133,7 @@ export function RedisStep({ onComplete }: RedisStepProps) {
           <ol className="text-xs text-zinc-500 space-y-1 list-decimal list-inside">
             <li>Acesse o <a href="https://console.upstash.com/redis" target="_blank" rel="noopener noreferrer" className="text-red-400 hover:underline">console Upstash Redis</a></li>
             <li>Clique em <strong className="text-zinc-300">Create Database</strong></li>
-            <li>Nome: <strong className="text-zinc-300">smartzap</strong> • Região: <strong className="text-zinc-300">São Paulo</strong> (ou mais próxima)</li>
+            <li>Nome: <strong className="text-zinc-300">vozzysmart</strong> • Região: <strong className="text-zinc-300">São Paulo</strong> (ou mais próxima)</li>
             <li>Após criar, vá na aba <strong className="text-zinc-300">REST API</strong></li>
             <li>Copie a <strong className="text-zinc-300">UPSTASH_REDIS_REST_URL</strong> e <strong className="text-zinc-300">UPSTASH_REDIS_REST_TOKEN</strong></li>
           </ol>

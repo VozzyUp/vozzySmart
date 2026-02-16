@@ -5,7 +5,7 @@ import { broadcastPushNotification, sendNewMessageNotification, PushPayload } fr
  * POST /api/push/send
  *
  * Envia notificação push para todos os subscriptions ativos.
- * Requer autenticação (SMARTZAP_ADMIN_KEY).
+ * Requer autenticação (VOZZYSMART_ADMIN_KEY).
  *
  * Body pode ser:
  * 1. { type: 'message', contactName, preview, conversationId } - Para nova mensagem
@@ -14,7 +14,7 @@ import { broadcastPushNotification, sendNewMessageNotification, PushPayload } fr
 export async function POST(request: Request) {
   // Verificar autenticação
   const authHeader = request.headers.get('authorization')
-  const adminKey = process.env.SMARTZAP_ADMIN_KEY
+  const adminKey = process.env.VOZZYSMART_ADMIN_KEY
 
   if (!adminKey || authHeader !== `Bearer ${adminKey}`) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
 
     // Notificação customizada
     const payload: PushPayload = {
-      title: body.title || 'SmartZap',
+      title: body.title || 'VozzySmart',
       body: body.body || '',
       icon: body.icon || '/icons/icon-192.png',
       badge: body.badge || '/icons/icon-192.png',

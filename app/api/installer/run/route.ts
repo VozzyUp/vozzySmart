@@ -103,7 +103,7 @@ export async function POST(req: Request) {
 
   const { vercel, supabase, upstash, admin, healthCheck } = parsed.data;
   const envTargets = vercel.targets;
-  const shouldWaitStorage = process.env.SMARTZAP_WAIT_STORAGE === 'true';
+  const shouldWaitStorage = process.env.VOZZYSMART_WAIT_STORAGE === 'true';
 
   // Determine which steps to skip based on health check
   const skippedSteps: string[] = [];
@@ -192,7 +192,7 @@ export async function POST(req: Request) {
       { key: 'MASTER_PASSWORD', value: admin.passwordHash, targets: envTargets },
 
       // API Key para acesso programático
-      { key: 'SMARTZAP_API_KEY', value: `szap_${crypto.randomUUID().replace(/-/g, '')}`, targets: envTargets },
+      { key: 'VOZZYSMART_API_KEY', value: `vsm_${crypto.randomUUID().replace(/-/g, '')}`, targets: envTargets },
 
       // Setup flag (para isSetupComplete() retornar true em produção)
       { key: 'SETUP_COMPLETE', value: 'true', targets: envTargets },

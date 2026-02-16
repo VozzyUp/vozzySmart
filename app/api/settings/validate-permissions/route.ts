@@ -10,7 +10,7 @@ export const revalidate = 0
 const META_API_VERSION = 'v24.0'
 const META_API_BASE = `https://graph.facebook.com/${META_API_VERSION}`
 
-// Permissões obrigatórias para o SmartZap funcionar
+// Permissões obrigatórias para o VozzySmart funcionar
 const REQUIRED_SCOPES = [
   'whatsapp_business_messaging',
   'whatsapp_business_management',
@@ -161,7 +161,7 @@ function buildMissingScopesSteps(missing: string[]): string[] {
     'Vá em Configurações → Usuários → System Users',
     'Selecione ou crie um System User',
     `Gere um novo token com as permissões: ${list}`,
-    'Copie o novo token e atualize no SmartZap',
+    'Copie o novo token e atualize no VozzySmart',
   ]
 }
 

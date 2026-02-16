@@ -9,7 +9,7 @@ export const ApiDocsPanel: React.FC = () => {
   const [copied, setCopied] = useState(false);
 
   const apiKey = typeof window !== 'undefined'
-    ? localStorage.getItem('smartzap_api_key') || 'SUA_API_KEY'
+    ? localStorage.getItem('vozzysmart_api_key') || 'SUA_API_KEY'
     : 'SUA_API_KEY';
 
   const copyExample = () => {
@@ -30,7 +30,7 @@ export const ApiDocsPanel: React.FC = () => {
           <div>
             <CardTitle className="text-lg text-zinc-100">Documentação da API</CardTitle>
             <CardDescription>
-              Integre o SmartZap com seus sistemas via REST API
+              Integre o VozzySmart com seus sistemas via REST API
             </CardDescription>
           </div>
         </div>

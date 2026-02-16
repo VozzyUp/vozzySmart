@@ -64,7 +64,7 @@ interface Mem0Memory {
 
 const MEM0_TIMEOUT_MS = 3000 // 3 segundos de timeout
 const MEM0_API_BASE = 'https://api.mem0.ai/v1'
-const APP_ID = 'smartzap'
+const APP_ID = 'vozzysmart'
 
 // Cache em memória (evita bater no banco em toda requisição)
 let credentialsCache: Mem0Credentials | null = null
@@ -197,7 +197,7 @@ export async function fetchRelevantMemories(
 
   try {
     // Busca memórias como array (não string formatada)
-    // IMPORTANTE: app_id deve ser passado para filtrar memórias do SmartZap
+    // IMPORTANTE: app_id deve ser passado para filtrar memórias do VozzySmart
     const memories = await withTimeout(
       getMemories(query, {
         user_id: config.user_id,

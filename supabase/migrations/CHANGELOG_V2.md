@@ -5,7 +5,7 @@
 
 ## Objetivo
 
-Consolidar todas as otimizações de performance e correções de segurança aplicadas ao schema do SmartZap em um único arquivo de migração atualizado.
+Consolidar todas as otimizações de performance e correções de segurança aplicadas ao schema do VozzySmart em um único arquivo de migração atualizado.
 
 ---
 

@@ -24,7 +24,7 @@ interface VapidConfig {
 function getVapidConfig(): VapidConfig | null {
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
   const privateKey = process.env.VAPID_PRIVATE_KEY
-  const subject = process.env.VAPID_SUBJECT || 'mailto:contato@smartzap.com'
+  const subject = process.env.VAPID_SUBJECT || 'mailto:contato@vozzysmart.com'
 
   if (!publicKey || !privateKey) {
     console.warn('[Push] VAPID keys não configuradas')

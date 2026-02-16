@@ -336,7 +336,7 @@ export function isSuccess(state: InstallState): state is {
 // PERSISTÊNCIA (COM SCHEMA VERSIONING)
 // =============================================================================
 
-const STORAGE_KEY = 'smartzap_install_state';
+const STORAGE_KEY = 'vozzysmart_install_state';
 
 /** Estrutura persistida no localStorage (inclui versão) */
 interface PersistedState {

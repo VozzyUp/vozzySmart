@@ -22,7 +22,7 @@ export type AiGatewayConfig = {
   enabled: boolean
   /** API Key do AI Gateway (obtida em https://vercel.com/docs/ai-gateway) */
   apiKey: string
-  /** Se true, usa as chaves dos providers configuradas no SmartZap via BYOK */
+  /** Se true, usa as chaves dos providers configuradas no VozzySmart via BYOK */
   useBYOK: boolean
   /** Modelos de fallback no formato "provider/model" (ex: "anthropic/claude-sonnet-4") */
   fallbackModels: string[]

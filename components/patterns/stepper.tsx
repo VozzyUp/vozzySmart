@@ -5,7 +5,7 @@ import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 /**
- * SmartZap Design System - Stepper
+ * VozzySmart Design System - Stepper
  *
  * Componente de navegação por passos para wizards e formulários multi-step.
  *

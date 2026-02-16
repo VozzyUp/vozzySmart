@@ -156,7 +156,7 @@ class WebhookBatchManager {
     });
 
     // Get current campaign and update
-    const storageKey = 'smartzap_campaigns';
+    const storageKey = 'vozzysmart_campaigns';
     const stored = localStorage.getItem(storageKey);
     if (!stored) return;
 

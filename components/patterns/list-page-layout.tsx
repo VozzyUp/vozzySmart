@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/page'
 
 /**
- * SmartZap Design System - ListPageLayout
+ * VozzySmart Design System - ListPageLayout
  *
  * Layout padronizado para páginas de listagem.
  * Estrutura consistente: Header > Stats > Filters > Content

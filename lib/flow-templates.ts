@@ -9,7 +9,7 @@ export type FlowMappingV1 = {
     /** Nome do campo do Flow (response_json) que deve atualizar contacts.email */
     emailField?: string
   }
-  /** custom_fields do contato: { chave_no_smartzap: nome_do_campo_no_flow } */
+  /** custom_fields do contato: { chave_no_vozzysmart: nome_do_campo_no_flow } */
   customFields?: Record<string, string>
 }
 
@@ -37,7 +37,7 @@ export type FlowTemplate = {
   description: string
   /** Flow JSON no formato exigido pela Meta (armazenado como JSONB). */
   flowJson: Record<string, unknown>
-  /** Mapping padrão para salvar respostas no SmartZap. */
+  /** Mapping padrão para salvar respostas no VozzySmart. */
   defaultMapping: FlowMappingV1
   /** Form spec pré-definido (opcional). Se presente, usado pelo builder em vez de converter flowJson. */
   form?: FlowFormSpecV1

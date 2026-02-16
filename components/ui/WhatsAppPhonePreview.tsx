@@ -5,7 +5,7 @@ import { MessageSquare, Zap, Image, Video, FileText, ExternalLink, Phone, Copy }
 import { TemplateComponent, TemplateButton } from '../../types';
 import { replaceTemplatePlaceholders, type TemplateParameterFormat } from '@/lib/whatsapp/placeholder';
 
-type PreviewVariant = 'whatsapp' | 'smartzap';
+type PreviewVariant = 'whatsapp' | 'vozzysmart';
 
 const PREVIEW_THEME: Record<PreviewVariant, {
   headerBg: string;
@@ -37,7 +37,7 @@ const PREVIEW_THEME: Record<PreviewVariant, {
     buttonHoverBg: 'hover:bg-[#182229]',
     buttonDivider: 'border-[#111b21]',
   },
-  smartzap: {
+  vozzysmart: {
     headerBg: 'bg-zinc-950/40',
     bubbleBg: 'bg-zinc-900/60',
     bubbleText: 'text-white',
@@ -656,7 +656,7 @@ export const WhatsAppPhonePreview: React.FC<WhatsAppPhonePreviewProps> = ({
   namedVariables,
   namedHeaderVariables,
   fallbackContent,
-  businessName = 'SmartZap Business',
+  businessName = 'VozzySmart Business',
   showEmptyState = true,
   emptyStateMessage = 'Selecione um template',
   size = 'lg',
@@ -764,7 +764,7 @@ interface CompactPreviewProps {
   fallbackContent?: string;
   /** Additional class */
   className?: string;
-  /** Visual variant (default = smartzap) */
+  /** Visual variant (default = vozzysmart) */
   variant?: PreviewVariant;
 }
 
@@ -778,7 +778,7 @@ export const CompactPreview: React.FC<CompactPreviewProps> = ({
   namedHeaderVariables,
   fallbackContent,
   className = '',
-  variant = 'smartzap',
+  variant = 'vozzysmart',
 }) => {
   return (
     <div

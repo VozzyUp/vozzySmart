@@ -35,7 +35,7 @@ export async function proxy(request: NextRequest) {
 
     // Session cookie can exist even when SETUP_COMPLETE env isn't set (dev/local).
     // If the user has a valid session, we should not force them back into the setup wizard.
-    const sessionCookie = request.cookies.get('smartzap_session')
+    const sessionCookie = request.cookies.get('vozzysmart_session')
 
     // Handle OPTIONS requests for CORS preflight.
     // Alguns scripts (ex.: Vercel feedback/toolbar) disparam OPTIONS/HEAD mesmo em páginas.
@@ -93,7 +93,7 @@ export async function proxy(request: NextRequest) {
 
             const adminAuth = await verifyAdminAccess(request)
             if (!adminAuth.valid) {
-                return unauthorizedResponse('Installer API bloqueada após instalação. Faça login ou use SMARTZAP_ADMIN_KEY.')
+                return unauthorizedResponse('Installer API bloqueada após instalação. Faça login ou use VOZZYSMART_ADMIN_KEY.')
             }
             return NextResponse.next()
         }

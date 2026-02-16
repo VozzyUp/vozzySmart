@@ -2,7 +2,7 @@
  * Sistema de estado persistente para instalação resumível.
  * Salva progresso em localStorage para permitir retomar em caso de falha.
  *
- * Adaptado do CRM para SmartZap - inclui steps para QStash e Redis.
+ * Adaptado do CRM para VozzySmart - inclui steps para QStash e Redis.
  */
 
 export interface InstallStep {
@@ -32,7 +32,7 @@ export interface InstallState {
   error?: string;
 }
 
-const STORAGE_KEY = 'smartzap_install_state';
+const STORAGE_KEY = 'vozzysmart_install_state';
 const STATE_VERSION = 1;
 const MAX_RETRY_COUNT = 3;
 
@@ -102,7 +102,7 @@ export function clearInstallState(): void {
 /**
  * Cria um novo estado de instalação
  *
- * Steps do SmartZap:
+ * Steps do VozzySmart:
  * 1. health_check - Verificar saúde do projeto Supabase
  * 2. resolve_keys - Resolver chaves API do Supabase
  * 3. setup_envs - Configurar variáveis de ambiente no Vercel

@@ -38,7 +38,7 @@ export interface OnboardingProgress {
   // O banco de dados é a única fonte de verdade para "onboarding completo"
 }
 
-const STORAGE_KEY = 'smartzap_onboarding_progress_v2'; // v2 para ignorar localStorage antigo
+const STORAGE_KEY = 'vozzysmart_onboarding_progress_v2'; // v2 para ignorar localStorage antigo
 
 const DEFAULT_PROGRESS: OnboardingProgress = {
   currentStep: 'welcome',

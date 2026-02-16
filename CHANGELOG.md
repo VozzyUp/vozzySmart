@@ -70,7 +70,7 @@ O formato é baseado em **[Keep a Changelog](https://keepachangelog.com/pt-BR/1.
 ## [2.0.0] - 2025-12-13
 
 ### Added
-- Base do template **SmartZap v2** com Next.js (App Router), React e Tailwind.
+- Base do template **VozzySmart v2** com Next.js (App Router), React e Tailwind.
 
 - Dashboard (área autenticada) com visão de métricas e status do sistema.
 
@@ -145,5 +145,5 @@ O formato é baseado em **[Keep a Changelog](https://keepachangelog.com/pt-BR/1.
 
 ---
 
-[Unreleased]: https://github.com/thaleslaray/smartzap/compare/885be45...HEAD
-[2.0.0]: https://github.com/thaleslaray/smartzap/compare/8505c0f...885be45
+[Unreleased]: https://github.com/thaleslaray/vozzysmart/compare/885be45...HEAD
+[2.0.0]: https://github.com/thaleslaray/vozzysmart/compare/8505c0f...885be45

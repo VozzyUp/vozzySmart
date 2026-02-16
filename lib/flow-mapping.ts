@@ -60,12 +60,12 @@ export async function applyFlowMappingToContact(input: {
   const cfMap = isPlainObject(input.mapping.customFields) ? (input.mapping.customFields as Record<string, unknown>) : null
   const customFieldsUpdates: Record<string, unknown> = {}
   if (cfMap) {
-    for (const [smartzapKey, flowFieldAny] of Object.entries(cfMap)) {
+    for (const [vozzysmartKey, flowFieldAny] of Object.entries(cfMap)) {
       const flowField = typeof flowFieldAny === 'string' ? flowFieldAny : null
       if (!flowField) continue
       const v = deepGetResponseValue(response, flowField)
       if (v === undefined) continue
-      customFieldsUpdates[smartzapKey] = v
+      customFieldsUpdates[vozzysmartKey] = v
     }
   }
 

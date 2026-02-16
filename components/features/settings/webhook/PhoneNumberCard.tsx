@@ -92,10 +92,10 @@ export function PhoneNumberCard({
               </div>
               {/* Status line */}
               <div className={'text-xs mt-1.5 flex items-center gap-1.5 ' + colors.text}>
-                {webhookStatus.status === 'smartzap' ? (
+                {webhookStatus.status === 'vozzysmart' ? (
                   <>
                     <CheckCircle2 size={12} />
-                    <span>SmartZap capturando eventos</span>
+                    <span>VozzySmart capturando eventos</span>
                   </>
                 ) : webhookStatus.status === 'other' ? (
                   <>
@@ -141,7 +141,7 @@ export function PhoneNumberCard({
               {webhookStatus.level > 0 && (
                 <span className="font-bold">#{webhookStatus.level}</span>
               )}
-              {webhookStatus.status === 'smartzap' ? 'SmartZap' : webhookStatus.levelName}
+              {webhookStatus.status === 'vozzysmart' ? 'VozzySmart' : webhookStatus.levelName}
               <ChevronDown
                 size={12}
                 className={'transition-transform ' + (isFunnelExpanded ? 'rotate-180' : '')}

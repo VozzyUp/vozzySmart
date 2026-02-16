@@ -6,7 +6,7 @@
 -- =============================================================================
 --
 -- Este schema suporta múltiplos atendentes (telegram_users) na mesma instância
--- SmartZap. Não há account_id pois é single-tenant.
+-- VozzySmart. Não há account_id pois é single-tenant.
 --
 -- Compliance: Supabase Best Practices (Opção A - Backend-First)
 -- - RLS habilitado com policies permissivas (backend usa service_role)
@@ -65,7 +65,7 @@ FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- =============================================================================
 -- TABELA: telegram_link_codes
--- Códigos temporários para vincular Telegram ao SmartZap
+-- Códigos temporários para vincular Telegram ao VozzySmart
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS telegram_link_codes (

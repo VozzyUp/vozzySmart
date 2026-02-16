@@ -357,7 +357,7 @@ async function dispatchToQStash(
     }
 
     // Adiciona API key para passar pelo middleware de autenticação
-    const apiKey = process.env.SMARTZAP_API_KEY
+    const apiKey = process.env.VOZZYSMART_API_KEY
     if (apiKey) {
       headers['Authorization'] = `Bearer ${apiKey}`
     }

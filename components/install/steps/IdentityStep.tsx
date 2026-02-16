@@ -33,7 +33,7 @@ function generateStrongPassword(length = 16): string {
  * Hash SHA-256 com salt fixo.
  */
 async function hashPassword(password: string): Promise<string> {
-  const SALT = '_smartzap_salt_2026';
+  const SALT = '_vozzysmart_salt_2026';
   const encoder = new TextEncoder();
   const data = encoder.encode(password + SALT);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);

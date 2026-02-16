@@ -16,7 +16,7 @@ export interface DomainOption {
 export interface WabaOverrideStatus {
   url: string | null;
   isConfigured: boolean;
-  isSmartZap: boolean;
+  isVozzySmart: boolean;
 }
 
 export interface WebhookHierarchy {
@@ -34,11 +34,11 @@ export interface WebhookSubscription {
   // Novo: informações do override WABA (#2)
   wabaOverride?: WabaOverrideStatus;
   hierarchy?: WebhookHierarchy | null;
-  smartzapWebhookUrl?: string;
+  vozzysmartWebhookUrl?: string;
 }
 
 export interface WebhookStatus {
-  status: 'smartzap' | 'other' | 'waba' | 'app' | 'none';
+  status: 'vozzysmart' | 'other' | 'waba' | 'app' | 'none';
   url: string | null;
   level: number;
   levelName: string;
@@ -50,7 +50,7 @@ export interface WebhookFunnelLevel {
   name: string;
   url: string | null;
   isActive: boolean;
-  isSmartZap: boolean;
+  isVozzySmart: boolean;
   color: 'emerald' | 'blue' | 'zinc';
   description: string;
   isLocked?: boolean;

@@ -105,7 +105,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
       verifyUrl.searchParams.set('hub.mode', 'subscribe')
       verifyUrl.searchParams.set('hub.verify_token', verifyToken)
-      verifyUrl.searchParams.set('hub.challenge', 'smartzap_preflight_challenge')
+      verifyUrl.searchParams.set('hub.challenge', 'vozzysmart_preflight_challenge')
 
       const controller = new AbortController()
       const timeout = setTimeout(() => controller.abort(), 8000)

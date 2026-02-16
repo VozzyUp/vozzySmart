@@ -5,7 +5,7 @@ import { LucideIcon, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 /**
- * SmartZap Design System - SummaryPanel
+ * VozzySmart Design System - SummaryPanel
  *
  * Painel lateral para wizards mostrando resumo/preview.
  * Usado para dar feedback visual ao usuário sobre suas escolhas.

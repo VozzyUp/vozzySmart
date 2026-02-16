@@ -7,7 +7,7 @@
  * - Validação de agentes antes de ativar
  * - Debugging de comportamento da IA
  *
- * IMPORTANTE: Este endpoint requer autenticação via API key (SMARTZAP_API_KEY)
+ * IMPORTANTE: Este endpoint requer autenticação via API key (VOZZYSMART_API_KEY)
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -70,10 +70,10 @@ interface AITestResponse {
 
 function validateApiKey(req: NextRequest): boolean {
   const apiKey = req.headers.get('x-api-key') || req.headers.get('authorization')?.replace('Bearer ', '')
-  const validKey = process.env.SMARTZAP_API_KEY
+  const validKey = process.env.VOZZYSMART_API_KEY
 
   if (!validKey) {
-    console.warn('[AI-TEST] SMARTZAP_API_KEY not configured')
+    console.warn('[AI-TEST] VOZZYSMART_API_KEY not configured')
     return false
   }
 

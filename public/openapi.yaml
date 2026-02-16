@@ -1,7 +1,7 @@
 openapi: 3.0.3
 
 info:
-  title: SmartZap API
+  title: VozzySmart API
   description: |
     API de automação de marketing via WhatsApp.
 
@@ -9,8 +9,8 @@ info:
 
     Todas as rotas protegidas exigem autenticação via:
     - **Session Cookie** (para navegador/UI)
-    - **Bearer Token**: `Authorization: Bearer {SMARTZAP_API_KEY}`
-    - **API Key Header**: `X-API-Key: {SMARTZAP_API_KEY}`
+    - **Bearer Token**: `Authorization: Bearer {VOZZYSMART_API_KEY}`
+    - **API Key Header**: `X-API-Key: {VOZZYSMART_API_KEY}`
 
     ## Rotas Públicas
 
@@ -22,10 +22,10 @@ info:
     - `/api/installer/*` - Setup inicial
   version: 1.0.0
   contact:
-    name: SmartZap
+    name: VozzySmart
   license:
     name: Proprietary
-    url: https://smartzap.app/license
+    url: https://vozzysmart.app/license
 
 servers:
   - url: http://localhost:3000
@@ -59,12 +59,12 @@ components:
     BearerAuth:
       type: http
       scheme: bearer
-      description: Use SMARTZAP_API_KEY como token
+      description: Use VOZZYSMART_API_KEY como token
     ApiKeyAuth:
       type: apiKey
       in: header
       name: X-API-Key
-      description: Use SMARTZAP_API_KEY
+      description: Use VOZZYSMART_API_KEY
 
   schemas:
     Error:

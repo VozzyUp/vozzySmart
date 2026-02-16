@@ -77,7 +77,7 @@ export function ContactMemoriesSheet({
   const [generating, setGenerating] = useState(false)
 
   // Helper para chave do localStorage
-  const getSummaryKey = (phoneNumber: string) => `smartzap_summary_${phoneNumber}`
+  const getSummaryKey = (phoneNumber: string) => `vozzysmart_summary_${phoneNumber}`
 
   // Carrega resumo salvo do localStorage
   const loadSavedSummary = useCallback((phoneNumber: string) => {
@@ -329,7 +329,7 @@ export function ContactMemoriesSheet({
               </div>
             ) : (
               <>
-                {/* SEÇÃO 1: Perfil (Dados do SmartZap) */}
+                {/* SEÇÃO 1: Perfil (Dados do VozzySmart) */}
                 {profile && (
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 text-xs font-medium text-emerald-400">

@@ -4,7 +4,7 @@ import { validateSession } from '@/lib/user-auth'
 
 /**
  * Require either:
- * - a valid browser session (smartzap_session cookie), OR
+ * - a valid browser session (vozzysmart_session cookie), OR
  * - a valid API key (Authorization: Bearer ... / X-API-Key)
  *
  * Security goal: defense-in-depth for critical endpoints (PII, destructive actions),

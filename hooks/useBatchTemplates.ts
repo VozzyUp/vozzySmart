@@ -5,7 +5,7 @@ import { GeneratedTemplate } from '../services/templateService';
 import { templateService } from '../services/templateService';
 
 // Mock storage key
-const STORAGE_KEY = 'smartzap_batch_submissions';
+const STORAGE_KEY = 'vozzysmart_batch_submissions';
 
 export const useBatchTemplates = () => {
     const [submissions, setSubmissions] = useState<BatchSubmission[]>([]);

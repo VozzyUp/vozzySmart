@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 
 /**
- * SmartZap Design System - Pagination
+ * VozzySmart Design System - Pagination
  *
  * Componente de paginação padronizado.
  * Suporta navegação por números e prev/next.

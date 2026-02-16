@@ -24,7 +24,7 @@ function getFirstName(fullName: string): string {
 // CONSTANTS
 // ============================================================================
 
-const SESSION_COOKIE_NAME = 'smartzap_session'
+const SESSION_COOKIE_NAME = 'vozzysmart_session'
 const SESSION_MAX_AGE = 60 * 60 * 24 * 7 // 7 days in seconds
 const MAX_LOGIN_ATTEMPTS = 5
 const LOCKOUT_DURATION = 15 * 60 * 1000 // 15 minutes
@@ -342,7 +342,7 @@ export async function completeSetup(
  * Hash SHA-256 com salt fixo (mesmo algoritmo do IdentityStep no wizard).
  */
 async function hashPasswordForLogin(password: string): Promise<string> {
-  const SALT = '_smartzap_salt_2026';
+  const SALT = '_vozzysmart_salt_2026';
   const encoder = new TextEncoder();
   const data = encoder.encode(password + SALT);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);

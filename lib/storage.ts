@@ -1,10 +1,10 @@
 import { Campaign, Contact, CampaignStatus, ContactStatus, AppSettings, Message, MessageStatus, Template, TemplateStatus } from '../types';
 
 const KEYS = {
-  CAMPAIGNS: 'smartzap_campaigns',
-  CONTACTS: 'smartzap_contacts',
-  SETTINGS: 'smartzap_settings',
-  TEMPLATES: 'smartzap_templates',
+  CAMPAIGNS: 'vozzysmart_campaigns',
+  CONTACTS: 'vozzysmart_contacts',
+  SETTINGS: 'vozzysmart_settings',
+  TEMPLATES: 'vozzysmart_templates',
 };
 
 // Mapa de migração: valores antigos em inglês → novos em português

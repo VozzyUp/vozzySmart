@@ -348,7 +348,7 @@ export async function sendFlowMessage(
   }
 
   // Generate flow token if not provided
-  const flowToken = options.flowToken || `smartzap:${options.flowId}:${Date.now()}`
+  const flowToken = options.flowToken || `vozzysmart:${options.flowId}:${Date.now()}`
 
   // Build flow message payload
   const payload: Record<string, unknown> = {

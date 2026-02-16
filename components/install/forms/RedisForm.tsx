@@ -207,7 +207,7 @@ export function RedisForm({ data, onComplete, onBack, showBack }: FormProps) {
               Clique em <strong className="text-[var(--br-hologram-white)]">Create Database</strong>
             </li>
             <li>
-              Nome: <strong className="text-[var(--br-hologram-white)]">smartzap</strong> • Região: <strong className="text-[var(--br-hologram-white)]">São Paulo</strong>
+              Nome: <strong className="text-[var(--br-hologram-white)]">vozzysmart</strong> • Região: <strong className="text-[var(--br-hologram-white)]">São Paulo</strong>
             </li>
             <li>
               Após criar, vá na aba <strong className="text-[var(--br-hologram-white)]">REST API</strong>

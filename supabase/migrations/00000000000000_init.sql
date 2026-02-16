@@ -1,5 +1,5 @@
 -- =============================================================================
--- SMARTZAP - SCHEMA INICIAL
+-- VOZZYSMART - SCHEMA INICIAL
 -- Gerado: 2026-01-22 via pg_dump
 -- Atualizado: 2026-01-24 - Adicionado funções RPC para contadores atômicos
 --

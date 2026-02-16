@@ -49,7 +49,7 @@ interface ProvisioningState {
  * Após validação do PAT, o sistema automaticamente:
  * 1. Lista organizações do usuário
  * 2. Escolhe a melhor (paga > free com slot)
- * 3. Cria projeto "smartzap" (ou smartzapv2, v3...)
+ * 3. Cria projeto "vozzysmart" (ou vozzysmartv2, v3...)
  * 4. Aguarda projeto ficar ACTIVE (polling)
  * 5. Resolve chaves (anon_key, service_role_key)
  * 6. Avança para próximo step
@@ -117,10 +117,10 @@ export function SupabaseStep({ onComplete }: SupabaseStepProps) {
 
       // ========== 2. CRIAR PROJETO ==========
       setPhase('creating');
-      setStatusMessage('Criando projeto SmartZap...');
+      setStatusMessage('Criando projeto VozzySmart...');
 
       const dbPass = generateDbPassword();
-      let projectName = 'smartzap';
+      let projectName = 'vozzysmart';
       let attempt = 0;
       let createdProject: { id: string; url: string } | null = null;
 
@@ -145,7 +145,7 @@ export function SupabaseStep({ onComplete }: SupabaseStepProps) {
         } else if (createRes.status === 409) {
           // Nome já existe, tentar outro
           attempt++;
-          projectName = `smartzapv${attempt + 1}`;
+          projectName = `vozzysmartv${attempt + 1}`;
           setStatusMessage(`Nome em uso, tentando "${projectName}"...`);
         } else {
           const data = await createRes.json();
@@ -398,7 +398,7 @@ export function SupabaseStep({ onComplete }: SupabaseStepProps) {
           <div className="flex items-center gap-2 text-emerald-400">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <p className="text-xs text-left">
-              Criaremos automaticamente um projeto dedicado para o SmartZap
+              Criaremos automaticamente um projeto dedicado para o VozzySmart
             </p>
           </div>
         </div>
@@ -430,7 +430,7 @@ export function SupabaseStep({ onComplete }: SupabaseStepProps) {
             <ol className="text-xs text-zinc-400 space-y-1.5 list-decimal list-inside">
               <li>Acesse <a href="https://supabase.com/dashboard/account/tokens" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline">supabase.com/dashboard/account/tokens</a></li>
               <li>Clique em <strong className="text-zinc-300">Generate new token</strong></li>
-              <li>Nome: <strong className="text-zinc-300">smartzap</strong></li>
+              <li>Nome: <strong className="text-zinc-300">vozzysmart</strong></li>
               <li>Copie e cole o token acima</li>
             </ol>
             <p className="text-xs text-zinc-500 pt-1 border-t border-zinc-700/50">

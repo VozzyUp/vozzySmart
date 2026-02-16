@@ -1,8 +1,8 @@
 /**
- * Bootstrap da instância SmartZap.
+ * Bootstrap da instância VozzySmart.
  * Configura settings iniciais após migrations.
  *
- * SmartZap usa MASTER_PASSWORD para auth, não Supabase Auth.
+ * VozzySmart usa MASTER_PASSWORD para auth, não Supabase Auth.
  * O bootstrap apenas garante que configurações iniciais existam.
  */
 
@@ -22,7 +22,7 @@ type BootstrapResult =
 
 /**
  * Verifica se login funciona (para validar instalação).
- * SmartZap usa MASTER_PASSWORD via env var, não Supabase Auth.
+ * VozzySmart usa MASTER_PASSWORD via env var, não Supabase Auth.
  * Esta função apenas verifica conectividade com o Supabase.
  */
 export async function verifySupabaseConnection(params: {
@@ -54,7 +54,7 @@ export async function verifySupabaseConnection(params: {
 }
 
 /**
- * Bootstrap da instância SmartZap.
+ * Bootstrap da instância VozzySmart.
  * Idempotente - pode rodar múltiplas vezes sem efeitos colaterais.
  */
 export async function bootstrapInstance({
@@ -90,7 +90,7 @@ export async function bootstrapInstance({
   // 2) Configura settings iniciais
   // Nota: company_name é necessário para isSetupComplete() retornar true
   // Usa o nome do admin se fornecido, senão extrai do email como fallback
-  const companyName = adminName?.trim() || emailNorm.split('@')[0] || 'SmartZap';
+  const companyName = adminName?.trim() || emailNorm.split('@')[0] || 'VozzySmart';
 
   // Gera chaves RSA para o Flow Endpoint (MiniApp Dinâmico)
   // Isso evita erro ao publicar Flows que usam endpoint dinâmico

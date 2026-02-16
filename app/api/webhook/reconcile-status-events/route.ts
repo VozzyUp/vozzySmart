@@ -11,7 +11,7 @@ function getBearerToken(req: NextRequest): string | null {
 }
 
 function isAuthorized(req: NextRequest): boolean {
-  const secret = (process.env.SMARTZAP_ADMIN_KEY || process.env.SMARTZAP_API_KEY || '').trim()
+  const secret = (process.env.VOZZYSMART_ADMIN_KEY || process.env.VOZZYSMART_API_KEY || '').trim()
   if (!secret) return false
 
   const q = req.nextUrl.searchParams.get('key')?.trim()

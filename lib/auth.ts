@@ -74,8 +74,8 @@ export async function verifyApiKey(request: NextRequest): Promise<AuthResult> {
   }
 
   // Check against environment variables
-  const envApiKey = process.env.SMARTZAP_API_KEY
-  const envAdminKey = process.env.SMARTZAP_ADMIN_KEY
+  const envApiKey = process.env.VOZZYSMART_API_KEY
+  const envAdminKey = process.env.VOZZYSMART_ADMIN_KEY
 
   if (envAdminKey && apiKey === envAdminKey) {
     return { valid: true, keyType: 'admin' }
@@ -143,7 +143,7 @@ export function unauthorizedResponse(message: string = 'Unauthorized'): NextResp
     {
       status: 401,
       headers: {
-        'WWW-Authenticate': 'Bearer realm="SmartZap API"'
+        'WWW-Authenticate': 'Bearer realm="VozzySmart API"'
       }
     }
   )
@@ -170,5 +170,5 @@ export function forbiddenResponse(message: string = 'Forbidden'): NextResponse {
  * Generate a new API key
  */
 export function generateApiKey(): string {
-  return 'szap_' + randomBytes(24).toString('base64url').slice(0, 32)
+  return 'vsm_' + randomBytes(24).toString('base64url').slice(0, 32)
 }

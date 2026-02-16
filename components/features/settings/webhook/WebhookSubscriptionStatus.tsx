@@ -54,7 +54,7 @@ export function WebhookSubscriptionStatus({
   const isLoading = webhookSubscriptionLoading || webhookSubscriptionMutating;
   const wabaOverride = webhookSubscription?.wabaOverride;
   const isConfigured = wabaOverride?.isConfigured ?? false;
-  const isSmartZap = wabaOverride?.isSmartZap ?? false;
+  const isVozzySmart = wabaOverride?.isVozzySmart ?? false;
   const overrideUrl = wabaOverride?.url;
 
   // Determina o que está sendo usado atualmente
@@ -106,8 +106,8 @@ export function WebhookSubscriptionStatus({
           ) : webhookSubscription?.ok ? (
             isConfigured ? (
               <>
-                <StatusBadge status={isSmartZap ? 'success' : 'warning'} showDot>
-                  {isSmartZap ? 'SmartZap' : 'Outro sistema'}
+                <StatusBadge status={isVozzySmart ? 'success' : 'warning'} showDot>
+                  {isVozzySmart ? 'VozzySmart' : 'Outro sistema'}
                 </StatusBadge>
                 <span className="text-[var(--ds-text-muted)]">·</span>
                 <span className="text-[var(--ds-text-secondary)] text-xs font-mono truncate max-w-[200px]" title={overrideUrl || ''}>
@@ -153,7 +153,7 @@ export function WebhookSubscriptionStatus({
               ) : (
                 <>
                   <strong>App (#3)</strong> está sendo usado como fallback.
-                  Configure aqui para todos os números usarem o SmartZap automaticamente.
+                  Configure aqui para todos os números usarem o VozzySmart automaticamente.
                 </>
               )}
             </p>
@@ -174,24 +174,24 @@ export function WebhookSubscriptionStatus({
 
         {/* Ações */}
         <div className="flex flex-wrap gap-2 pt-1">
-          {!isConfigured || !isSmartZap ? (
+          {!isConfigured || !isVozzySmart ? (
             <button
               onClick={handleSubscribe}
               disabled={isLoading || !onSubscribe}
               className="h-10 px-3 bg-[var(--ds-status-success)] hover:opacity-90 text-white font-medium rounded-lg transition-colors text-sm flex items-center gap-2 disabled:opacity-50"
-              title="Configurar SmartZap como webhook WABA"
+              title="Configurar VozzySmart como webhook WABA"
             >
               {webhookSubscriptionMutating ? (
                 <Loader2 size={16} className="animate-spin" />
               ) : (
                 <Zap size={16} />
               )}
-              Ativar SmartZap para WABA
+              Ativar VozzySmart para WABA
             </button>
           ) : (
             <div className="flex items-center gap-2 px-3 py-2 bg-[var(--ds-status-success-bg)] text-[var(--ds-status-success-text)] rounded-lg text-sm">
               <CheckCircle2 size={16} />
-              SmartZap ativo
+              VozzySmart ativo
             </div>
           )}
 

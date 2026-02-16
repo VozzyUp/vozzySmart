@@ -190,7 +190,7 @@ export function AIGatewayPanel() {
             <div>
               <div className="text-sm font-medium text-[var(--ds-text-primary)]">Usar suas chaves (BYOK)</div>
               <div className="text-xs text-[var(--ds-text-muted)] mt-0.5">
-                Usa as chaves dos providers já configuradas no SmartZap
+                Usa as chaves dos providers já configuradas no VozzySmart
               </div>
             </div>
             <button

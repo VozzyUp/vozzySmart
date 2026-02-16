@@ -52,7 +52,7 @@ export interface FunnelStage {
 // Event Store
 // ============================================================================
 
-const STORAGE_KEY = 'smartzap_campaign_events';
+const STORAGE_KEY = 'vozzysmart_campaign_events';
 const MAX_EVENTS = 10000; // Keep last 10k events
 
 /**

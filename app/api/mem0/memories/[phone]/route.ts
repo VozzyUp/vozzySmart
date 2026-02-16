@@ -1,7 +1,7 @@
 /**
  * Mem0 Memories API - Gerencia memórias de um contato específico
  *
- * GET  - Lista todas as memórias do contato + dados do perfil SmartZap
+ * GET  - Lista todas as memórias do contato + dados do perfil VozzySmart
  * DELETE - Apaga todas as memórias (LGPD - direito ao esquecimento)
  *
  * @param phone - Número de telefone do contato (E.164)
@@ -27,13 +27,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ ok: false, error: 'Phone é obrigatório' }, { status: 400 })
     }
 
-    // Busca dados do perfil do SmartZap (em paralelo com memórias)
+    // Busca dados do perfil do VozzySmart (em paralelo com memórias)
     const [contact, mem0Enabled] = await Promise.all([
       contactDb.getByPhone(phone).catch(() => null),
       isMem0EnabledAsync(),
     ])
 
-    // Monta perfil do contato (dados do SmartZap)
+    // Monta perfil do contato (dados do VozzySmart)
     const profile = contact ? {
       name: contact.name || null,
       email: contact.email || null,

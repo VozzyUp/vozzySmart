@@ -146,7 +146,7 @@ async function getBookingServices(fallback?: ServiceType[]): Promise<ServiceType
 function extractMetaFlowIdFromToken(flowToken?: string | null): string | null {
   const raw = String(flowToken || '').trim()
   if (!raw) return null
-  const m = raw.match(/^smartzap:(\d{6,25}):/)
+  const m = raw.match(/^vozzysmart:(\d{6,25}):/)
   return m?.[1] || null
 }
 
@@ -629,7 +629,7 @@ async function createBookingEvent(params: {
         `Telefone: ${params.customerPhone}`,
         params.notes ? `Observações: ${params.notes}` : null,
         '',
-        'Agendado via WhatsApp (SmartZap)',
+        'Agendado via WhatsApp (VozzySmart)',
       ]
         .filter(Boolean)
         .join('\n'),

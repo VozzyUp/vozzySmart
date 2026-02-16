@@ -12,8 +12,8 @@ export const revalidate = 0
 // QStash cannot reach localhost, então usamos um setTimeout para disparar o dispatch.
 // Observação: isso só funciona enquanto o processo do `next dev` estiver rodando.
 const localScheduleRegistry: Map<string, NodeJS.Timeout> =
-  (globalThis as any).__smartzapLocalScheduleRegistry
-  || ((globalThis as any).__smartzapLocalScheduleRegistry = new Map<string, NodeJS.Timeout>())
+  (globalThis as any).__vozzysmartLocalScheduleRegistry
+  || ((globalThis as any).__vozzysmartLocalScheduleRegistry = new Map<string, NodeJS.Timeout>())
 
 /**
  * GET /api/campaigns

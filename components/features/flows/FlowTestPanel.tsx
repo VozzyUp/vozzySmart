@@ -63,7 +63,7 @@ export function FlowTestPanel({
     if (flowToken.trim()) return
     if (!flowId.trim()) return
     const nonce = Math.random().toString(36).slice(2, 8)
-    setFlowToken(`smartzap:${flowId.trim()}:${Date.now()}:${nonce}`)
+    setFlowToken(`vozzysmart:${flowId.trim()}:${Date.now()}:${nonce}`)
   }, [flowId, flowToken])
 
   return (

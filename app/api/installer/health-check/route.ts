@@ -52,7 +52,7 @@ async function checkDatabaseHealth(dbUrl: string): Promise<{
   hasSettings: boolean;
 }> {
   const normalizedDbUrl = stripSslModeParam(dbUrl);
-  const shouldWaitStorage = process.env.SMARTZAP_WAIT_STORAGE === 'true';
+  const shouldWaitStorage = process.env.VOZZYSMART_WAIT_STORAGE === 'true';
 
   // NÃO resolver para IPv4 - o SSL precisa do hostname original para SNI
   const client = new Client({
@@ -63,7 +63,7 @@ async function checkDatabaseHealth(dbUrl: string): Promise<{
   try {
     await client.connect();
 
-    // SmartZap não depende de Storage por padrão. Só valida quando explicitamente solicitado.
+    // VozzySmart não depende de Storage por padrão. Só valida quando explicitamente solicitado.
     let storageReady = !shouldWaitStorage;
     if (shouldWaitStorage) {
       const storageResult = await client.query<{ ready: boolean }>(

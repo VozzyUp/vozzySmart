@@ -245,7 +245,7 @@ export function buildTemplateSpecV1(template: Template): TemplateSpecV1 {
 export function resolveVarValue(raw: string | undefined, contact: ContactLike): string {
   const val = (raw ?? '').trim()
 
-  // Tokens documentados internamente do SmartZap (não Meta): nomes em pt-BR + compat
+  // Tokens documentados internamente do VozzySmart (não Meta): nomes em pt-BR + compat
   if (val === '{{nome}}' || val === '{{name}}' || val === '{{contact.name}}') {
     return (contact.name || 'Cliente').trim()
   }
@@ -276,7 +276,7 @@ export function resolveVarValue(raw: string | undefined, contact: ContactLike): 
 function resolveVarValueForPrecheck(raw: string | undefined, contact: ContactLike): string {
   const val = (raw ?? '').trim()
 
-  // Tokens documentados internamente do SmartZap (não Meta): nomes em pt-BR + compat
+  // Tokens documentados internamente do VozzySmart (não Meta): nomes em pt-BR + compat
   if (val === '{{nome}}' || val === '{{name}}' || val === '{{contact.name}}') {
     return String(contact.name || '').trim()
   }
@@ -539,13 +539,13 @@ function generateFlowToken(flowId?: string, campaignId?: string): string {
   const seed = Math.random().toString(36).slice(2, 8)
   const stamp = Date.now().toString(36)
   const suffix = campaignId ? `:c:${campaignId}` : ''
-  return `smartzap:${flowId || 'flow'}:${stamp}:${seed}${suffix}`
+  return `vozzysmart:${flowId || 'flow'}:${stamp}:${seed}${suffix}`
 }
 
 function appendCampaignToFlowToken(token: string, campaignId?: string): string {
   if (!campaignId) return token
   if (token.includes(':c:')) return token
-  if (!token.startsWith('smartzap:')) return token
+  if (!token.startsWith('vozzysmart:')) return token
   return `${token}:c:${campaignId}`
 }
 

@@ -132,7 +132,7 @@ export function VercelStep({ onComplete }: VercelStepProps) {
             <ol className="text-xs text-zinc-400 space-y-1.5 list-decimal list-inside">
               <li>Acesse <a href="https://vercel.com/account/tokens" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline">vercel.com/account/tokens</a></li>
               <li>Clique em <strong className="text-zinc-300">Create</strong></li>
-              <li>Nome: <strong className="text-zinc-300">smartzap</strong> • Scope: <strong className="text-zinc-300">Full Account</strong></li>
+              <li>Nome: <strong className="text-zinc-300">vozzysmart</strong> • Scope: <strong className="text-zinc-300">Full Account</strong></li>
               <li>Copie e cole o token acima</li>
             </ol>
           </div>

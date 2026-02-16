@@ -2,7 +2,7 @@
 
 ## Visão Geral
 
-O arquivo `00000000000000_init.sql` contém o schema completo e atualizado do SmartZap, incluindo:
+O arquivo `00000000000000_init.sql` contém o schema completo e atualizado do VozzySmart, incluindo:
 - 38 tabelas (campaigns, contacts, inbox, workflows, etc.)
 - 13 funções (incluindo 4 RPCs de performance)
 - 100 indexes (incluindo indexes de FK)

@@ -51,9 +51,9 @@ export function WebhookFunnelVisualization({
             const isBusy = isLevel1 ? isNumberBusy : isLevel2 ? isWabaBusy : false;
             const hasOverride = !!level.url;
             const canActivate = isLevel1
-              ? (onActivateNumber && !level.isSmartZap)
+              ? (onActivateNumber && !level.isVozzySmart)
               : isLevel2
-                ? (onActivateWaba && !level.isSmartZap)
+                ? (onActivateWaba && !level.isVozzySmart)
                 : false;
             const canDeactivate = isLevel1
               ? (onDeactivateNumber && hasOverride)
@@ -86,7 +86,7 @@ export function WebhookFunnelVisualization({
                       {level.isActive ? (
                         <CheckCircle2
                           size={16}
-                          className={level.isSmartZap ? 'text-emerald-400' : ''}
+                          className={level.isVozzySmart ? 'text-emerald-400' : ''}
                         />
                       ) : level.url ? (
                         <Circle size={16} className="opacity-40" />
@@ -98,12 +98,12 @@ export function WebhookFunnelVisualization({
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold text-sm">#{level.level}</span>
                           <span className="font-medium text-sm">{level.name}</span>
-                          {level.isActive && level.isSmartZap && (
+                          {level.isActive && level.isVozzySmart && (
                             <span className="px-1.5 py-0.5 bg-emerald-500/30 text-emerald-300 text-[10px] font-bold rounded">
-                              SMARTZAP
+                              VOZZYSMART
                             </span>
                           )}
-                          {level.isActive && !level.isSmartZap && level.url && (
+                          {level.isActive && !level.isVozzySmart && level.url && (
                             <span className="px-1.5 py-0.5 bg-amber-500/30 text-amber-300 text-[10px] font-bold rounded">
                               OUTRO
                             </span>
@@ -142,13 +142,13 @@ export function WebhookFunnelVisualization({
                       {/* Botões de ação para níveis 1 e 2 (não para o 3 que é fixo) */}
                       {!isLevel3 && (
                         <>
-                          {/* Botão Ativar SmartZap */}
+                          {/* Botão Ativar VozzySmart */}
                           {canActivate && !hasOverride && (
                             <button
                               onClick={handleActivate}
                               disabled={isBusy}
                               className="h-8 px-2.5 text-[10px] font-medium bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-lg transition-colors flex items-center gap-1"
-                              title={`Ativar SmartZap no nível #${level.level}`}
+                              title={`Ativar VozzySmart no nível #${level.level}`}
                             >
                               {isBusy ? (
                                 <Loader2 size={12} className="animate-spin" />
@@ -160,19 +160,19 @@ export function WebhookFunnelVisualization({
                           )}
 
                           {/* Botão Substituir quando há outro sistema */}
-                          {canActivate && hasOverride && !level.isSmartZap && (
+                          {canActivate && hasOverride && !level.isVozzySmart && (
                             <button
                               onClick={handleActivate}
                               disabled={isBusy}
                               className="h-8 px-2.5 text-[10px] font-medium bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-lg transition-colors flex items-center gap-1"
-                              title={`Substituir por SmartZap`}
+                              title={`Substituir por VozzySmart`}
                             >
                               {isBusy ? (
                                 <Loader2 size={12} className="animate-spin" />
                               ) : (
                                 <Zap size={12} />
                               )}
-                              SmartZap
+                              VozzySmart
                             </button>
                           )}
 

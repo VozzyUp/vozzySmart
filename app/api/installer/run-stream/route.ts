@@ -210,7 +210,7 @@ export async function POST(req: Request) {
 
   // Determine which steps to skip based on health check
   const skippedSteps: string[] = [];
-  const shouldWaitStorage = process.env.SMARTZAP_WAIT_STORAGE === 'true';
+  const shouldWaitStorage = process.env.VOZZYSMART_WAIT_STORAGE === 'true';
   if (healthCheck?.skipWaitProject) skippedSteps.push('wait_project');
   if (!shouldWaitStorage) skippedSteps.push('wait_storage');
   if (shouldWaitStorage && healthCheck?.skipWaitStorage) skippedSteps.push('wait_storage');
@@ -348,7 +348,7 @@ export async function POST(req: Request) {
         { key: 'MASTER_PASSWORD', value: admin.passwordHash, targets: envTargets },
 
         // API Key para acesso programático
-        { key: 'SMARTZAP_API_KEY', value: `szap_${crypto.randomUUID().replace(/-/g, '')}`, targets: envTargets },
+        { key: 'VOZZYSMART_API_KEY', value: `vsm_${crypto.randomUUID().replace(/-/g, '')}`, targets: envTargets },
 
         // Setup flag (para isSetupComplete() retornar true em produção)
         { key: 'SETUP_COMPLETE', value: 'true', targets: envTargets },

@@ -164,7 +164,7 @@ describe('batch-webhooks', () => {
 
       it('deve agrupar updates por campaignId', () => {
         localStorageMock.setItem(
-          'smartzap_campaigns',
+          'vozzysmart_campaigns',
           JSON.stringify([
             { id: 'camp-1', delivered: 0, read: 0 },
             { id: 'camp-2', delivered: 0, read: 0 },
@@ -214,7 +214,7 @@ describe('batch-webhooks', () => {
 
       it('deve chamar recordMessageDelivered para status delivered', () => {
         localStorageMock.setItem(
-          'smartzap_campaigns',
+          'vozzysmart_campaigns',
           JSON.stringify([{ id: 'camp-1', delivered: 0, read: 0 }])
         )
 
@@ -237,7 +237,7 @@ describe('batch-webhooks', () => {
 
       it('deve chamar recordMessageRead para status read', () => {
         localStorageMock.setItem(
-          'smartzap_campaigns',
+          'vozzysmart_campaigns',
           JSON.stringify([{ id: 'camp-1', delivered: 0, read: 0 }])
         )
 
@@ -260,7 +260,7 @@ describe('batch-webhooks', () => {
 
       it('deve chamar recordMessageFailed para status failed com erro', () => {
         localStorageMock.setItem(
-          'smartzap_campaigns',
+          'vozzysmart_campaigns',
           JSON.stringify([{ id: 'camp-1', delivered: 0, read: 0 }])
         )
 
@@ -285,7 +285,7 @@ describe('batch-webhooks', () => {
 
       it('deve usar "Unknown error" quando error nao esta presente', () => {
         localStorageMock.setItem(
-          'smartzap_campaigns',
+          'vozzysmart_campaigns',
           JSON.stringify([{ id: 'camp-1', delivered: 0, read: 0 }])
         )
 
@@ -309,7 +309,7 @@ describe('batch-webhooks', () => {
 
       it('deve atualizar stats da campanha no localStorage', () => {
         localStorageMock.setItem(
-          'smartzap_campaigns',
+          'vozzysmart_campaigns',
           JSON.stringify([{ id: 'camp-1', delivered: 5, read: 2 }])
         )
 
@@ -330,14 +330,14 @@ describe('batch-webhooks', () => {
 
         webhookBatcher.flush()
 
-        const stored = JSON.parse(localStorageMock.getItem('smartzap_campaigns') || '[]')
+        const stored = JSON.parse(localStorageMock.getItem('vozzysmart_campaigns') || '[]')
         expect(stored[0].delivered).toBe(6) // 5 + 1
         expect(stored[0].read).toBe(3) // 2 + 1
       })
 
       it('deve logar warning quando campanha nao e encontrada', () => {
         localStorageMock.setItem(
-          'smartzap_campaigns',
+          'vozzysmart_campaigns',
           JSON.stringify([{ id: 'other-camp', delivered: 0, read: 0 }])
         )
 
@@ -357,7 +357,7 @@ describe('batch-webhooks', () => {
       })
 
       it('deve tratar erro ao atualizar localStorage', () => {
-        localStorageMock.setItem('smartzap_campaigns', 'invalid-json')
+        localStorageMock.setItem('vozzysmart_campaigns', 'invalid-json')
 
         webhookBatcher.add({
           messageId: 'msg-1',
@@ -738,7 +738,7 @@ describe('batch-webhooks', () => {
 
     it('deve adicionar campaignId ao update', () => {
       localStorageMock.setItem(
-        'smartzap_campaigns',
+        'vozzysmart_campaigns',
         JSON.stringify([{ id: 'my-campaign', delivered: 0, read: 0 }])
       )
 
@@ -831,7 +831,7 @@ describe('batch-webhooks', () => {
   describe('integracao: fluxo completo de webhook', () => {
     it('deve processar multiplos webhooks Meta e atualizar campanhas', () => {
       localStorageMock.setItem(
-        'smartzap_campaigns',
+        'vozzysmart_campaigns',
         JSON.stringify([
           { id: 'campaign-a', delivered: 10, read: 5 },
           { id: 'campaign-b', delivered: 20, read: 10 },
@@ -875,7 +875,7 @@ describe('batch-webhooks', () => {
       webhookBatcher.flush()
 
       // Verifica que as estatisticas foram atualizadas
-      const campaigns = JSON.parse(localStorageMock.getItem('smartzap_campaigns') || '[]')
+      const campaigns = JSON.parse(localStorageMock.getItem('vozzysmart_campaigns') || '[]')
 
       expect(campaigns[0].delivered).toBe(12) // 10 + 2
       expect(campaigns[0].read).toBe(6) // 5 + 1
@@ -885,7 +885,7 @@ describe('batch-webhooks', () => {
 
     it('deve fazer flush automatico apos timeout', () => {
       localStorageMock.setItem(
-        'smartzap_campaigns',
+        'vozzysmart_campaigns',
         JSON.stringify([{ id: 'camp-1', delivered: 0, read: 0 }])
       )
 
