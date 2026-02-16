@@ -13,14 +13,18 @@ const GITHUB_OAUTH_REDIRECT_URI = typeof window !== 'undefined'
   ? `${window.location.origin}/api/installer/github/oauth/callback`
   : '';
 
+const REPO_NAME_REGEX = /^[A-Za-z0-9._-]+$/;
+const REPO_NAME_ERROR = 'Nome de repositório inválido. Use apenas letras (A–Z, a–z), números (0–9) e os caracteres ., - e _';
+
 export function GitHubForm({ data, onComplete, onBack, showBack }: FormProps) {
   const [githubToken, setGithubToken] = useState(data.githubToken || '');
   const [githubUsername, setGithubUsername] = useState(data.githubUsername || '');
-  const [repoName, setRepoName] = useState(data.githubRepoName || 'vozzysmart');
+  const [repoName, setRepoName] = useState(data.githubRepoName || '');
   const [isPrivate, setIsPrivate] = useState(true);
   const [isValidating, setIsValidating] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState('');
+  const [repoNameError, setRepoNameError] = useState('');
   const [tokenValidated, setTokenValidated] = useState(!!data.githubToken);
 
   // OAuth Flow
@@ -107,10 +111,26 @@ export function GitHubForm({ data, onComplete, onBack, showBack }: FormProps) {
     }
   }, [githubToken]);
 
+  const handleRepoNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setRepoName(value);
+
+    if (value && (value.length >= 100 || !REPO_NAME_REGEX.test(value))) {
+      setRepoNameError(REPO_NAME_ERROR);
+    } else {
+      setRepoNameError('');
+    }
+  }, []);
+
   // Criação do repositório
   const handleCreateRepo = useCallback(async () => {
     if (!repoName.trim()) {
       setError('Digite um nome para o repositório');
+      return;
+    }
+
+    if (repoName.length >= 100 || !REPO_NAME_REGEX.test(repoName)) {
+      setError(REPO_NAME_ERROR);
       return;
     }
 
@@ -282,11 +302,14 @@ export function GitHubForm({ data, onComplete, onBack, showBack }: FormProps) {
             <Input
               id="repoName"
               type="text"
-              placeholder="vozzysmart"
+              placeholder="meu-repositorio"
               value={repoName}
-              onChange={(e) => setRepoName(e.target.value)}
+              onChange={handleRepoNameChange}
               disabled={isCreating}
             />
+            {repoNameError && (
+              <p className="text-xs text-red-500">{repoNameError}</p>
+            )}
             <p className="text-xs text-muted-foreground">
               Será criado em: github.com/{githubUsername}/{repoName}
             </p>
@@ -318,7 +341,7 @@ export function GitHubForm({ data, onComplete, onBack, showBack }: FormProps) {
         <Button
           type="button"
           onClick={handleCreateRepo}
-          disabled={!tokenValidated || isCreating || !repoName.trim()}
+          disabled={!tokenValidated || isCreating || !repoName.trim() || !!repoNameError}
           className="flex-1"
         >
           {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
